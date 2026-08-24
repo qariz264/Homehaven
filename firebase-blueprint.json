@@ -1,0 +1,94 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "Represents a user in the system (Landlord, Admin, or Tenant)",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "phone": { "type": "string" },
+        "role": { "type": "string", "enum": ["landlord", "admin", "tenant"] },
+        "suspended": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "name", "email", "role"]
+    },
+    "Listing": {
+      "title": "Listing",
+      "description": "A property listing",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "price": { "type": "number" },
+        "location": { "type": "string" },
+        "county": { "type": "string" },
+        "preciseLocation": { "type": "string" },
+        "unitsAvailable": { "type": "number" },
+        "landlordPhone": { "type": "string" },
+        "landlordEmail": { "type": "string" },
+        "images": { "type": "array", "items": { "type": "string" } },
+        "ownerId": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "active", "suspended", "expired"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "expiresAt": { "type": "string", "format": "date-time" },
+        "lat": { "type": "number" },
+        "lng": { "type": "number" }
+      },
+      "required": ["title", "description", "price", "location", "ownerId", "status"]
+    },
+    "Complaint": {
+      "title": "Complaint",
+      "description": "Tenant complaints filed against listings or landlords",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "listingId": { "type": "string" },
+        "listingTitle": { "type": "string" },
+        "landlordEmail": { "type": "string" },
+        "complainantEmail": { "type": "string" },
+        "reason": { "type": "string" },
+        "details": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "resolved", "dismissed"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["listingId", "reason", "details", "status", "createdAt"]
+    },
+    "Payment": {
+      "title": "Payment",
+      "description": "A payment record from Paystack",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "customerEmail": { "type": "string" },
+        "amount": { "type": "number" },
+        "transactionId": { "type": "string" },
+        "listingId": { "type": "string" },
+        "status": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["amount", "transactionId", "listingId", "status", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profiles"
+    },
+    "/listings/{listingId}": {
+      "schema": "Listing",
+      "description": "Property listings"
+    },
+    "/complaints/{complaintId}": {
+      "schema": "Complaint",
+      "description": "Tenant complaints"
+    },
+    "/payments/{paymentId}": {
+      "schema": "Payment",
+      "description": "Payment records"
+    }
+  }
+}

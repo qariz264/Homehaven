@@ -1,0 +1,6 @@
+{
+  "name": "HomeHaven",
+  "description": "A premium real estate marketplace connecting landlords and tenants with real M-Pesa payment-activated listings.",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": []
+}
