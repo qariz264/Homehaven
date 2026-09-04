@@ -204,24 +204,29 @@ class PaystackService {
 
   /**
    * Validates the Paystack webhook signature header (x-paystack-signature)
-   * using HMAC SHA512 of the request body.
+   * using HMAC SHA512 of the request body with constant-time comparison to eliminate timing attacks.
    */
   verifyWebhookSignature(rawBody: string | Buffer | object, signature: string): boolean {
-    if (!signature) return false;
+    if (!signature || typeof signature !== 'string') return false;
     try {
       const secret = this.getSecretKey();
-      const bodyString = typeof rawBody === 'string' 
-        ? rawBody 
-        : Buffer.isBuffer(rawBody) 
-          ? rawBody.toString('utf8') 
-          : JSON.stringify(rawBody);
+      const bodyBuffer = Buffer.isBuffer(rawBody)
+        ? rawBody
+        : Buffer.from(typeof rawBody === 'string' ? rawBody : JSON.stringify(rawBody), 'utf8');
 
-      const hash = crypto
+      const computedHash = crypto
         .createHmac('sha512', secret)
-        .update(bodyString)
+        .update(bodyBuffer)
         .digest('hex');
 
-      return hash === signature;
+      const computedBuffer = Buffer.from(computedHash, 'utf8');
+      const receivedBuffer = Buffer.from(signature, 'utf8');
+
+      if (computedBuffer.length !== receivedBuffer.length) {
+        return false;
+      }
+
+      return crypto.timingSafeEqual(computedBuffer, receivedBuffer);
     } catch (err) {
       console.error('[PaystackService] Webhook signature verification error:', err);
       return false;

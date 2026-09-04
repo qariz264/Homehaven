@@ -6,6 +6,7 @@ import { useAuth } from '../App';
 import { KENYA_COUNTIES } from '../lib/counties';
 import { MapPin, DollarSign, Camera, CheckCircle2, ChevronRight, Sparkles, Building, Info, ShieldCheck, Upload, X, Image as ImageIcon, Plus } from 'lucide-react';
 import { motion } from 'motion/react';
+import { useSEO } from '../hooks/useSEO';
 
 const compressAndConvertToBase64 = (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
@@ -50,6 +51,13 @@ const compressAndConvertToBase64 = (file: File): Promise<string> => {
 const CreateListingPage: React.FC = () => {
   const { profile } = useAuth();
   const navigate = useNavigate();
+
+  useSEO({
+    title: 'Publish New Property Listing | HomeHaven Landlord Hub',
+    description: 'List your rental apartment, maisonette, or house on Kenya\'s verified real estate portal.',
+    robots: 'noindex, follow'
+  });
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -132,6 +140,7 @@ const CreateListingPage: React.FC = () => {
         preciseLocation: preciseLocation.trim(),
         location: fullLocationString,
         unitsAvailable: parseInt(unitsAvailable) || 1,
+        landlordName: profile?.businessName || profile?.name || 'Verified Landlord',
         landlordPhone: landlordPhone.trim() || profile?.phone || '',
         landlordEmail: landlordEmail.trim() || profile?.email || '',
         lat: lat.trim() ? parseFloat(lat) : -1.2921,
@@ -205,10 +214,10 @@ const CreateListingPage: React.FC = () => {
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-white rounded-[3rem] shadow-[0_40px_100px_rgba(0,0,0,0.03)] border border-slate-100 overflow-hidden"
+              className="bg-white rounded-3xl sm:rounded-[3rem] shadow-[0_40px_100px_rgba(0,0,0,0.03)] border border-slate-100 overflow-hidden"
             >
-              <div className="p-10 md:p-12 border-b border-slate-50">
-                <div className="flex items-center justify-between mb-8">
+              <div className="p-5 sm:p-8 md:p-12 border-b border-slate-50">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8">
                    <h2 className="text-xl font-black text-slate-900 uppercase tracking-widest italic">Asset Configuration</h2>
                    <div className="flex items-center gap-3">
                       <div className="flex -space-x-1">
@@ -219,11 +228,16 @@ const CreateListingPage: React.FC = () => {
                 </div>
                 
                 <form onSubmit={handleSubmit} className="space-y-8">
-                  <div className="bg-blue-50 border border-blue-200 p-5 rounded-2xl flex items-start gap-3">
-                    <ShieldCheck className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
-                    <div className="text-xs text-blue-900 leading-relaxed font-medium">
-                      <strong className="font-black uppercase tracking-wider block mb-1">Paystack Auto-Verification Policy:</strong>
-                      To prevent fraud and site overload, only house listings with completed Paystack payment (KES 1,500 activation fee) are eligible for public listing. Once created, you can pay via Paystack on your dashboard to instantly auto-verify and publish your property for tenants.
+                  <div className="bg-emerald-50 border border-emerald-200 p-5 rounded-2xl flex items-start gap-3.5">
+                    <ShieldCheck className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+                    <div className="text-xs text-emerald-950 leading-relaxed">
+                      <div className="flex items-center gap-2 mb-1">
+                        <strong className="font-black uppercase tracking-wider text-emerald-900">Paystack Listing Activation (KES 1,500):</strong>
+                        <span className="px-2 py-0.5 bg-emerald-200/80 text-emerald-900 rounded-md text-[10px] font-black uppercase">M-Pesa & Cards</span>
+                      </div>
+                      <p className="text-emerald-800 font-medium">
+                        To maintain high quality and verified inventory, all listings require a fixed <strong>KES 1,500 activation fee</strong> powered by Paystack. Once submitted, you can complete payment immediately on your dashboard to instantly publish your property to prospective tenants for 30 days.
+                      </p>
                     </div>
                   </div>
 

@@ -154,28 +154,6 @@ const ManualPaymentModal: React.FC<ManualPaymentModalProps> = ({ isOpen, onClose
                 </div>
               )}
 
-              {/* Payment Instructions Box */}
-              <div className="bg-slate-900 text-white p-5 rounded-2xl space-y-3 shadow-md">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest">
-                    Direct Payment Transfer Details
-                  </span>
-                  <span className="text-xs font-black bg-blue-600 px-2.5 py-1 rounded-lg">KES 1,500</span>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs font-medium text-slate-300">
-                  <div className="bg-slate-800/80 p-3 rounded-xl border border-slate-700">
-                    <strong className="text-white block font-black uppercase text-[10px] tracking-wider mb-1">📲 M-Pesa Paybill / Till:</strong>
-                    <div>Paybill: <strong className="text-emerald-400 font-mono">247247</strong></div>
-                    <div>Account: <strong className="text-white font-mono">HOMEHAVEN-{listing.id.substring(0, 5).toUpperCase()}</strong></div>
-                  </div>
-                  <div className="bg-slate-800/80 p-3 rounded-xl border border-slate-700">
-                    <strong className="text-white block font-black uppercase text-[10px] tracking-wider mb-1">🏦 Direct M-Pesa Buy Goods:</strong>
-                    <div>Till Number: <strong className="text-emerald-400 font-mono">9812450</strong></div>
-                    <div>Name: <strong className="text-white">HomeHaven Real Estate</strong></div>
-                  </div>
-                </div>
-              </div>
-
               <div className="space-y-4">
                 {/* Method selector */}
                 <div>

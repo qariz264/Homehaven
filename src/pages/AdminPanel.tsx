@@ -33,9 +33,17 @@ import {
   UserCheck
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useSEO } from '../hooks/useSEO';
 
 const AdminPanel: React.FC = () => {
   const { profile, user } = useAuth();
+
+  useSEO({
+    title: 'Admin Console | HomeHaven Root Control',
+    description: 'HomeHaven Administrative Security Console for fraud prevention and listing moderation.',
+    robots: 'noindex, nofollow'
+  });
+
   const [listings, setListings] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
   const [complaints, setComplaints] = useState<any[]>([]);
@@ -431,49 +439,49 @@ const AdminPanel: React.FC = () => {
         </div>
 
         {/* Tab Selector */}
-        <div className="flex flex-wrap gap-3 mb-8 border-b border-slate-200 pb-4">
+        <div className="flex overflow-x-auto no-scrollbar sm:flex-wrap gap-2 sm:gap-3 mb-6 sm:mb-8 border-b border-slate-200 pb-3 sm:pb-4">
           <button
             onClick={() => setActiveTab('complaints')}
-            className={`px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 ${
+            className={`whitespace-nowrap flex-shrink-0 px-4 py-2.5 sm:px-6 sm:py-3 rounded-xl sm:rounded-2xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 ${
               activeTab === 'complaints'
                 ? 'bg-red-600 text-white shadow-lg shadow-red-500/20'
                 : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
             }`}
           >
-            <AlertTriangle className="w-4 h-4" /> Complaints & Fraud ({pendingComplaints.length})
+            <AlertTriangle className="w-4 h-4 shrink-0" /> Complaints & Fraud ({pendingComplaints.length})
           </button>
 
           <button
             onClick={() => setActiveTab('payments')}
-            className={`px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 ${
+            className={`whitespace-nowrap flex-shrink-0 px-4 py-2.5 sm:px-6 sm:py-3 rounded-xl sm:rounded-2xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 ${
               activeTab === 'payments'
                 ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/20'
                 : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
             }`}
           >
-            <CreditCard className="w-4 h-4" /> Payments & Verifications ({pendingManualPayments.length})
+            <CreditCard className="w-4 h-4 shrink-0" /> Payments ({pendingManualPayments.length})
           </button>
 
           <button
             onClick={() => setActiveTab('users')}
-            className={`px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 ${
+            className={`whitespace-nowrap flex-shrink-0 px-4 py-2.5 sm:px-6 sm:py-3 rounded-xl sm:rounded-2xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 ${
               activeTab === 'users'
                 ? 'bg-slate-900 text-white shadow-lg'
                 : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
             }`}
           >
-            <Users className="w-4 h-4" /> Landlords & Users ({users.length})
+            <Users className="w-4 h-4 shrink-0" /> Landlords & Users ({users.length})
           </button>
 
           <button
             onClick={() => setActiveTab('listings')}
-            className={`px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 ${
+            className={`whitespace-nowrap flex-shrink-0 px-4 py-2.5 sm:px-6 sm:py-3 rounded-xl sm:rounded-2xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 ${
               activeTab === 'listings'
                 ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
                 : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
             }`}
           >
-            <Layout className="w-4 h-4" /> Property Inventory ({listings.length})
+            <Layout className="w-4 h-4 shrink-0" /> Properties ({listings.length})
           </button>
         </div>
 

@@ -31,73 +31,74 @@ const PropertyCard: React.FC<{ listing: Listing }> = ({ listing }) => {
         show: { opacity: 1, y: 0 }
       }}
       whileHover={{ y: -6 }}
-      className="bg-white rounded-[2rem] overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_20px_50px_rgba(0,0,0,0.08)] transition-all duration-500 border border-slate-100 group flex flex-col h-full"
+      className="bg-white rounded-2xl sm:rounded-[2rem] overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_20px_50px_rgba(0,0,0,0.08)] transition-all duration-500 border border-slate-100 group flex flex-col h-full"
     >
       <Link to={`/listing/${listing.id}`} className="flex flex-col h-full">
         <div className="relative aspect-[16/10] overflow-hidden">
           <img 
             src={listing.images?.[0] || 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=800&q=80'} 
-            alt={listing.title}
+            alt={`${listing.title} - Rental House in ${locationText}, Kenya`}
+            loading="lazy"
             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000 ease-out"
           />
           {/* Top Overlays */}
-          <div className="absolute top-4 left-4 flex flex-wrap gap-2">
-            <span className="bg-slate-900/80 backdrop-blur-md text-white text-[10px] font-black px-3 py-1.5 rounded-full uppercase tracking-widest shadow-xl flex items-center gap-1.5">
-              <ShieldCheck className="w-3 h-3 text-blue-400" /> Verified
+          <div className="absolute top-3 left-3 sm:top-4 sm:left-4 flex flex-wrap gap-1.5 sm:gap-2">
+            <span className="bg-slate-900/80 backdrop-blur-md text-white text-[9px] sm:text-[10px] font-black px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full uppercase tracking-widest shadow-xl flex items-center gap-1 sm:gap-1.5">
+              <ShieldCheck className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-blue-400" /> Verified
             </span>
-            <span className="bg-blue-600/90 backdrop-blur-md text-white text-[10px] font-black px-3 py-1.5 rounded-full uppercase tracking-widest shadow-xl flex items-center gap-1">
-              <Home className="w-3 h-3" /> {units} {units === 1 ? 'Unit' : 'Units'} Available
+            <span className="bg-blue-600/90 backdrop-blur-md text-white text-[9px] sm:text-[10px] font-black px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full uppercase tracking-widest shadow-xl flex items-center gap-1">
+              <Home className="w-2.5 h-2.5 sm:w-3 sm:h-3" /> {units} {units === 1 ? 'Unit' : 'Units'} Left
             </span>
           </div>
-          <div className="absolute top-4 right-4 animate-in fade-in zoom-in duration-500">
-             <div className="bg-white/90 backdrop-blur-md p-2 rounded-full shadow-lg">
+          <div className="absolute top-3 right-3 sm:top-4 sm:right-4 animate-in fade-in zoom-in duration-500">
+             <div className="bg-white/90 backdrop-blur-md p-1.5 sm:p-2 rounded-full shadow-lg">
                 <HeartIcon />
              </div>
           </div>
           
           {/* Bottom Price Bar */}
-          <div className="absolute bottom-4 left-4 right-4">
-             <div className="glass-card bg-white/90 p-3 rounded-2xl flex justify-between items-center shadow-2xl">
+          <div className="absolute bottom-3 left-3 right-3 sm:bottom-4 sm:left-4 sm:right-4">
+             <div className="glass-card bg-white/90 p-2.5 sm:p-3 rounded-xl sm:rounded-2xl flex justify-between items-center shadow-2xl">
                 <div className="flex flex-col">
-                   <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Monthly Rent</span>
-                   <span className="text-sm font-black text-slate-900">KES {listing.price.toLocaleString()}</span>
+                   <span className="text-[7px] sm:text-[8px] font-black text-slate-400 uppercase tracking-widest">Monthly Rent</span>
+                   <span className="text-xs sm:text-sm font-black text-slate-900">KES {listing.price.toLocaleString()}</span>
                 </div>
-                <div className="bg-blue-600 text-white p-2 rounded-xl group-hover:px-4 transition-all duration-300">
-                   <ArrowRight className="w-4 h-4" />
+                <div className="bg-blue-600 text-white p-1.5 sm:p-2 rounded-lg sm:rounded-xl group-hover:px-3 sm:group-hover:px-4 transition-all duration-300">
+                   <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 </div>
              </div>
           </div>
         </div>
         
-        <div className="p-6 flex flex-col flex-grow">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-1.5 text-blue-600 text-[10px] font-black uppercase tracking-widest">
+        <div className="p-4 sm:p-5 md:p-6 flex flex-col flex-grow">
+          <div className="flex items-center justify-between mb-2 sm:mb-3">
+            <div className="flex items-center gap-1.5 text-blue-600 text-[9px] sm:text-[10px] font-black uppercase tracking-widest">
               <Star className="w-3 h-3 fill-blue-600" /> Premium Listing
             </div>
             {units > 0 && (
-              <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-md uppercase">
+              <span className="text-[9px] sm:text-[10px] font-black text-emerald-600 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-md uppercase">
                 {units} Vacant
               </span>
             )}
           </div>
 
-          <h3 className="text-xl font-black text-slate-900 mb-2 line-clamp-1 group-hover:text-blue-600 transition-colors uppercase tracking-tight">{listing.title}</h3>
+          <h3 className="text-base sm:text-lg font-black text-slate-900 mb-1.5 sm:mb-2 line-clamp-1 group-hover:text-blue-600 transition-colors uppercase tracking-tight">{listing.title}</h3>
           
           {/* Location details */}
-          <div className="flex items-center gap-1.5 text-slate-600 text-xs font-bold mb-3">
+          <div className="flex items-center gap-1.5 text-slate-600 text-xs font-bold mb-2 sm:mb-3">
             <MapPin className="w-3.5 h-3.5 text-blue-600 shrink-0" />
             <span className="line-clamp-1">{locationText}</span>
           </div>
 
           {/* Landlord Description */}
           {listing.description && (
-            <p className="text-xs text-slate-500 font-medium line-clamp-3 mb-4 bg-slate-50/80 p-3 rounded-xl border border-slate-100 leading-relaxed italic">
+            <p className="text-xs text-slate-500 font-medium line-clamp-2 sm:line-clamp-3 mb-3 sm:mb-4 bg-slate-50/80 p-2.5 sm:p-3 rounded-xl border border-slate-100 leading-relaxed italic">
               "{listing.description}"
             </p>
           )}
 
           {(listing.landlordPhone || listing.landlordEmail) && (
-            <div className="flex flex-col gap-1 text-[11px] text-slate-500 font-medium mt-auto bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+            <div className="flex flex-col gap-1 text-[10px] sm:text-[11px] text-slate-500 font-medium mt-auto bg-slate-50 p-2 sm:p-2.5 rounded-xl border border-slate-100">
               {listing.landlordPhone && (
                 <div className="flex items-center gap-1.5 text-slate-700 font-bold">
                   <Phone className="w-3 h-3 text-blue-500" /> {listing.landlordPhone}

@@ -3,22 +3,91 @@ import { collection, query, where, getDocs, orderBy, limit } from 'firebase/fire
 import { db } from '../lib/firebase';
 import PropertyCard from '../components/PropertyCard';
 import ReportFraudModal from '../components/ReportFraudModal';
+import LocationPermissionCard from '../components/LocationPermissionCard';
 import { KENYA_COUNTIES } from '../lib/counties';
-import { Search, MapPin, SlidersHorizontal, ArrowRight, Building2, Users2, ShieldCheck, Zap, X, RotateCcw, DollarSign, Home as HomeIcon, Filter, Navigation, ShieldAlert } from 'lucide-react';
+import { useSEO } from '../hooks/useSEO';
+import { Search, MapPin, SlidersHorizontal, ArrowRight, Building2, Users2, ShieldCheck, Zap, X, RotateCcw, DollarSign, Home as HomeIcon, Filter, Navigation, ShieldAlert, Crosshair } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 
 const HomePage: React.FC = () => {
+  const location = useLocation();
   const [listings, setListings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showFraudModal, setShowFraudModal] = useState(false);
-  
+  const [showLocationCard, setShowLocationCard] = useState(false);
+  const [detectedLocationInfo, setDetectedLocationInfo] = useState<string | null>(null);
+
   // Search & Filter state
   const [selectedCounty, setSelectedCounty] = useState('');
   const [locationSearch, setLocationSearch] = useState('');
   const [minPrice, setMinPrice] = useState<string>('');
   const [maxPrice, setMaxPrice] = useState<string>('');
   const [minUnits, setMinUnits] = useState<string>('');
+
+  // Check if geographic location access has been previously decided
+  useEffect(() => {
+    const geoStatus = localStorage.getItem('geo_permission_status');
+    if (!geoStatus) {
+      const timer = setTimeout(() => {
+        setShowLocationCard(true);
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, []);
+
+  // Dynamic SEO configuration for Home and County Searches
+  useSEO({
+    title: selectedCounty 
+      ? `Verified Houses & Apartments for Rent in ${selectedCounty} County | HomeHaven Kenya`
+      : 'HomeHaven | Verified Real Estate & House Listings in Kenya',
+    description: selectedCounty
+      ? `Browse verified rental properties in ${selectedCounty} County, Kenya. Direct landlord contacts, transparent monthly rent, and real-time vacant unit counters.`
+      : 'A premium real estate marketplace connecting landlords and tenants with real M-Pesa payment-activated listings across Nairobi, Mombasa, Kisumu, and all 47 counties in Kenya.',
+    keywords: 'houses for rent Kenya, Nairobi apartments, real estate Kenya, bedsitters Nairobi, Kilimani rentals, Westlands apartments, rent houses Mombasa, verified landlord listings, Kenyan real estate',
+    canonicalUrl: selectedCounty ? `https://homehaven.co.ke/?county=${encodeURIComponent(selectedCounty)}` : 'https://homehaven.co.ke/',
+    schema: {
+      '@context': 'https://schema.org',
+      '@graph': [
+        {
+          '@type': 'WebSite',
+          'name': 'HomeHaven',
+          'url': 'https://homehaven.co.ke',
+          'potentialAction': {
+            '@type': 'SearchAction',
+            'target': 'https://homehaven.co.ke/?search={search_term_string}',
+            'query-input': 'required name=search_term_string'
+          }
+        },
+        {
+          '@type': 'RealEstateAgent',
+          'name': 'HomeHaven Kenya',
+          'description': "Kenya's premier verified real estate portal for rental houses and apartments.",
+          'address': {
+            '@type': 'PostalAddress',
+            'addressLocality': 'Nairobi',
+            'addressRegion': selectedCounty || 'Nairobi County',
+            'addressCountry': 'KE'
+          }
+        }
+      ]
+    }
+  });
+
+  // Smooth scroll to anchor on navigation
+  useEffect(() => {
+    if (location.hash) {
+      const targetId = location.hash.replace('#', '');
+      const element = document.getElementById(targetId);
+      if (element) {
+        setTimeout(() => {
+          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 150);
+      }
+    } else if (location.pathname === '/' && !location.hash) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [location.pathname, location.hash]);
 
   useEffect(() => {
     const fetchListings = async () => {
@@ -89,7 +158,7 @@ const HomePage: React.FC = () => {
   return (
     <div className="bg-[#f8fafc] min-h-screen">
       {/* Immersive Hero Section */}
-      <section className="relative h-[80vh] flex items-center justify-center overflow-hidden">
+      <section id="hero" className="relative h-[80vh] flex items-center justify-center overflow-hidden">
         <div className="absolute inset-0">
           <img 
             src="https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1920&q=80" 
@@ -112,79 +181,91 @@ const HomePage: React.FC = () => {
               HomeHaven <br /> Real Estate <span className="text-blue-400">Hub</span>
             </h1>
             
-            <div className="max-w-4xl mx-auto glass-card p-4 rounded-3xl shadow-2xl space-y-3">
+            {/* Hero Filter Card with Black Text */}
+            <div className="max-w-4xl mx-auto bg-white/95 backdrop-blur-md p-5 rounded-3xl shadow-2xl space-y-3 border border-white/40">
               <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                 {/* County Selector */}
-                <div className="flex items-center gap-2 px-3 py-3.5 bg-white/10 rounded-2xl border border-white/10">
-                  <Navigation className="w-4 h-4 text-blue-400 shrink-0" />
+                <div className="flex items-center gap-2 px-3 py-3.5 bg-slate-50 rounded-2xl border border-slate-200">
+                  <Navigation className="w-4 h-4 text-black shrink-0" />
                   <select
-                    className="w-full text-xs outline-none font-bold text-white bg-transparent cursor-pointer appearance-none [&>option]:text-slate-900"
+                    className="w-full text-xs outline-none font-black text-black bg-transparent cursor-pointer appearance-none"
                     value={selectedCounty}
                     onChange={(e) => setSelectedCounty(e.target.value)}
                   >
-                    <option value="">All 47 Counties</option>
+                    <option value="" className="text-black font-bold">All 47 Counties</option>
                     {KENYA_COUNTIES.map(c => (
-                      <option key={c} value={c}>{c} County</option>
+                      <option key={c} value={c} className="text-black font-bold">{c} County</option>
                     ))}
                   </select>
                 </div>
 
                 {/* Location / Keyword Search */}
-                <div className="flex items-center gap-3 px-4 py-3.5 bg-white/10 rounded-2xl border border-white/10">
-                  <MapPin className="w-5 h-5 text-blue-400 shrink-0" />
+                <div className="flex items-center gap-3 px-4 py-3.5 bg-slate-50 rounded-2xl border border-slate-200">
+                  <MapPin className="w-5 h-5 text-black shrink-0" />
                   <input 
                     type="text" 
                     placeholder="Area / Estate / Title..."
-                    className="w-full text-xs outline-none font-bold text-white placeholder:text-white/50 bg-transparent"
+                    className="w-full text-xs outline-none font-black text-black placeholder:text-black/60 bg-transparent"
                     value={locationSearch}
                     onChange={(e) => setLocationSearch(e.target.value)}
                   />
                   {locationSearch && (
-                    <button onClick={() => setLocationSearch('')} className="text-white/40 hover:text-white">
+                    <button onClick={() => setLocationSearch('')} className="text-black hover:opacity-70">
                       <X className="w-4 h-4" />
                     </button>
                   )}
                 </div>
 
                 {/* Price Filter */}
-                <div className="flex items-center gap-2 px-3 py-3.5 bg-white/10 rounded-2xl border border-white/10">
-                  <DollarSign className="w-4 h-4 text-emerald-400 shrink-0" />
+                <div className="flex items-center gap-2 px-3 py-3.5 bg-slate-50 rounded-2xl border border-slate-200">
+                  <DollarSign className="w-4 h-4 text-black shrink-0" />
                   <input 
                     type="number" 
                     placeholder="Max Rent (KES)"
-                    className="w-full text-xs outline-none font-bold text-white placeholder:text-white/50 bg-transparent"
+                    className="w-full text-xs outline-none font-black text-black placeholder:text-black/60 bg-transparent"
                     value={maxPrice}
                     onChange={(e) => setMaxPrice(e.target.value)}
                   />
                 </div>
 
                 {/* Units Available */}
-                <div className="flex items-center gap-2 px-3 py-3.5 bg-white/10 rounded-2xl border border-white/10">
-                  <HomeIcon className="w-4 h-4 text-amber-400 shrink-0" />
+                <div className="flex items-center gap-2 px-3 py-3.5 bg-slate-50 rounded-2xl border border-slate-200">
+                  <HomeIcon className="w-4 h-4 text-black shrink-0" />
                   <select 
-                    className="w-full text-xs outline-none font-bold text-white bg-transparent appearance-none cursor-pointer [&>option]:text-slate-900"
+                    className="w-full text-xs outline-none font-black text-black bg-transparent appearance-none cursor-pointer"
                     value={minUnits}
                     onChange={(e) => setMinUnits(e.target.value)}
                   >
-                    <option value="">Any Vacancy</option>
-                    <option value="1">1+ Unit</option>
-                    <option value="2">2+ Units</option>
-                    <option value="3">3+ Units</option>
-                    <option value="5">5+ Units</option>
+                    <option value="" className="text-black font-bold">Any Vacancy</option>
+                    <option value="1" className="text-black font-bold">1+ Unit</option>
+                    <option value="2" className="text-black font-bold">2+ Units</option>
+                    <option value="3" className="text-black font-bold">3+ Units</option>
+                    <option value="5" className="text-black font-bold">5+ Units</option>
                   </select>
                 </div>
               </div>
 
-              <div className="flex items-center justify-between pt-1 px-1">
-                <span className="text-[10px] font-black text-blue-200 uppercase tracking-widest flex items-center gap-1.5">
-                  <Filter className="w-3 h-3 text-blue-400" /> Filter by County, Area, Price & Vacant Units
-                </span>
+              <div className="flex items-center justify-between pt-1 px-1 flex-wrap gap-2">
+                <div className="flex items-center gap-2.5">
+                  <span className="text-[10px] font-black text-black uppercase tracking-widest flex items-center gap-1.5">
+                    <Filter className="w-3.5 h-3.5 text-black" /> Filter by County, Area, Price & Vacant Units
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setShowLocationCard(true)}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-[10px] font-black uppercase tracking-wider transition-all shadow-sm"
+                    title="Geographic location access request"
+                  >
+                    <Navigation className="w-3 h-3 text-blue-600" />
+                    <span>Near Me</span>
+                  </button>
+                </div>
                 {hasActiveFilters && (
                   <button 
                     onClick={clearFilters}
-                    className="text-[10px] font-black uppercase text-red-300 hover:text-red-100 flex items-center gap-1 hover:underline"
+                    className="text-[10px] font-black uppercase text-black hover:underline flex items-center gap-1"
                   >
-                    <RotateCcw className="w-3 h-3" /> Reset Filters
+                    <RotateCcw className="w-3 h-3 text-black" /> Reset Filters
                   </button>
                 )}
               </div>
@@ -211,7 +292,7 @@ const HomePage: React.FC = () => {
         </div>
       </section>
 
-      <section className="py-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section id="features" className="py-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-16 text-center md:text-left">
           <h2 className="text-3xl font-black text-slate-900 mb-2">Our Key Features</h2>
           <p className="text-slate-500 font-medium">Why landlords and tenants choose HomeHaven</p>
@@ -250,7 +331,7 @@ const HomePage: React.FC = () => {
       </section>
 
       {/* Featured Grid */}
-      <section className="py-24 bg-slate-50 border-y border-slate-100">
+      <section id="listings" className="py-24 bg-slate-50 border-y border-slate-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Filter Toolbar for Tenants */}
           <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-xl mb-10 space-y-4">
@@ -258,19 +339,19 @@ const HomePage: React.FC = () => {
               
               {/* County Dropdown */}
               <div>
-                <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider mb-1.5 block">
+                <label className="text-[10px] font-black uppercase text-black tracking-wider mb-1.5 block">
                   Select County
                 </label>
-                <div className="flex items-center gap-2 px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl">
-                  <Navigation className="w-4 h-4 text-blue-600 shrink-0" />
+                <div className="flex items-center gap-2 px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl">
+                  <Navigation className="w-4 h-4 text-black shrink-0" />
                   <select 
-                    className="w-full text-xs font-bold text-slate-900 bg-transparent outline-none cursor-pointer"
+                    className="w-full text-xs font-black text-black bg-transparent outline-none cursor-pointer"
                     value={selectedCounty}
                     onChange={(e) => setSelectedCounty(e.target.value)}
                   >
-                    <option value="">All 47 Counties</option>
+                    <option value="" className="text-black font-bold">All 47 Counties</option>
                     {KENYA_COUNTIES.map(c => (
-                      <option key={c} value={c}>{c} County</option>
+                      <option key={c} value={c} className="text-black font-bold">{c} County</option>
                     ))}
                   </select>
                 </div>
@@ -278,20 +359,20 @@ const HomePage: React.FC = () => {
 
               {/* Location or Title Search */}
               <div className="relative">
-                <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider mb-1.5 block">
+                <label className="text-[10px] font-black uppercase text-black tracking-wider mb-1.5 block">
                   Area / Estate / Title
                 </label>
-                <div className="flex items-center gap-2 px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl">
-                  <MapPin className="w-4 h-4 text-blue-600 shrink-0" />
+                <div className="flex items-center gap-2 px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl">
+                  <MapPin className="w-4 h-4 text-black shrink-0" />
                   <input 
                     type="text" 
                     placeholder="e.g. Kilimani, School Lane..."
-                    className="w-full text-xs font-bold text-slate-900 placeholder:text-slate-400 bg-transparent outline-none"
+                    className="w-full text-xs font-black text-black placeholder:text-black/60 bg-transparent outline-none"
                     value={locationSearch}
                     onChange={(e) => setLocationSearch(e.target.value)}
                   />
                   {locationSearch && (
-                    <button onClick={() => setLocationSearch('')} className="text-slate-400 hover:text-slate-700">
+                    <button onClick={() => setLocationSearch('')} className="text-black hover:opacity-70">
                       <X className="w-3.5 h-3.5" />
                     </button>
                   )}
@@ -300,20 +381,20 @@ const HomePage: React.FC = () => {
 
               {/* Min Price */}
               <div>
-                <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider mb-1.5 block">
+                <label className="text-[10px] font-black uppercase text-black tracking-wider mb-1.5 block">
                   Min Rent (KES)
                 </label>
-                <div className="flex items-center gap-2 px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl">
-                  <span className="text-xs font-bold text-slate-400">KES</span>
+                <div className="flex items-center gap-2 px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl">
+                  <span className="text-xs font-black text-black">KES</span>
                   <input 
                     type="number" 
                     placeholder="0"
-                    className="w-full text-xs font-bold text-slate-900 placeholder:text-slate-400 bg-transparent outline-none"
+                    className="w-full text-xs font-black text-black placeholder:text-black/60 bg-transparent outline-none"
                     value={minPrice}
                     onChange={(e) => setMinPrice(e.target.value)}
                   />
                   {minPrice && (
-                    <button onClick={() => setMinPrice('')} className="text-slate-400 hover:text-slate-700">
+                    <button onClick={() => setMinPrice('')} className="text-black hover:opacity-70">
                       <X className="w-3.5 h-3.5" />
                     </button>
                   )}
@@ -322,20 +403,20 @@ const HomePage: React.FC = () => {
 
               {/* Max Price */}
               <div>
-                <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider mb-1.5 block">
+                <label className="text-[10px] font-black uppercase text-black tracking-wider mb-1.5 block">
                   Max Rent (KES)
                 </label>
-                <div className="flex items-center gap-2 px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl">
-                  <span className="text-xs font-bold text-slate-400">KES</span>
+                <div className="flex items-center gap-2 px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl">
+                  <span className="text-xs font-black text-black">KES</span>
                   <input 
                     type="number" 
                     placeholder="Any price"
-                    className="w-full text-xs font-bold text-slate-900 placeholder:text-slate-400 bg-transparent outline-none"
+                    className="w-full text-xs font-black text-black placeholder:text-black/60 bg-transparent outline-none"
                     value={maxPrice}
                     onChange={(e) => setMaxPrice(e.target.value)}
                   />
                   {maxPrice && (
-                    <button onClick={() => setMaxPrice('')} className="text-slate-400 hover:text-slate-700">
+                    <button onClick={() => setMaxPrice('')} className="text-black hover:opacity-70">
                       <X className="w-3.5 h-3.5" />
                     </button>
                   )}
@@ -344,22 +425,22 @@ const HomePage: React.FC = () => {
 
               {/* Units Available */}
               <div>
-                <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider mb-1.5 block">
+                <label className="text-[10px] font-black uppercase text-black tracking-wider mb-1.5 block">
                   Vacant Units Needed
                 </label>
-                <div className="flex items-center gap-2 px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl">
-                  <HomeIcon className="w-4 h-4 text-amber-500 shrink-0" />
+                <div className="flex items-center gap-2 px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl">
+                  <HomeIcon className="w-4 h-4 text-black shrink-0" />
                   <select 
-                    className="w-full text-xs font-bold text-slate-900 bg-transparent outline-none cursor-pointer"
+                    className="w-full text-xs font-black text-black bg-transparent outline-none cursor-pointer"
                     value={minUnits}
                     onChange={(e) => setMinUnits(e.target.value)}
                   >
-                    <option value="">Any Vacancy</option>
-                    <option value="1">At least 1 Unit</option>
-                    <option value="2">At least 2 Units</option>
-                    <option value="3">At least 3 Units</option>
-                    <option value="5">At least 5 Units</option>
-                    <option value="10">At least 10 Units</option>
+                    <option value="" className="text-black font-bold">Any Vacancy</option>
+                    <option value="1" className="text-black font-bold">At least 1 Unit</option>
+                    <option value="2" className="text-black font-bold">At least 2 Units</option>
+                    <option value="3" className="text-black font-bold">At least 3 Units</option>
+                    <option value="5" className="text-black font-bold">At least 5 Units</option>
+                    <option value="10" className="text-black font-bold">At least 10 Units</option>
                   </select>
                 </div>
               </div>
@@ -369,42 +450,52 @@ const HomePage: React.FC = () => {
             {/* Filter status row & active chips */}
             <div className="pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3 text-xs">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="px-3 py-1 bg-slate-100 text-slate-700 font-black rounded-lg text-[10px] uppercase tracking-wider">
+                <span className="px-3 py-1 bg-black text-white font-black rounded-lg text-[10px] uppercase tracking-wider">
                   {filteredListings.length} {filteredListings.length === 1 ? 'House Found' : 'Houses Found'}
                 </span>
 
+                <button
+                  type="button"
+                  onClick={() => setShowLocationCard(true)}
+                  className="px-3 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 font-black rounded-lg text-[10px] uppercase tracking-wider flex items-center gap-1.5 transition-colors shadow-sm"
+                  title="Geographic location access request"
+                >
+                  <Navigation className="w-3 h-3 text-blue-600" />
+                  <span>{detectedLocationInfo ? `Nearby: ${detectedLocationInfo}` : 'Use My Location'}</span>
+                </button>
+
                 {selectedCounty && (
-                  <span className="px-3 py-1 bg-blue-600 text-white font-bold rounded-lg text-[10px] flex items-center gap-1.5">
+                  <span className="px-3 py-1 bg-slate-100 text-black border border-slate-300 font-black rounded-lg text-[10px] flex items-center gap-1.5">
                     County: {selectedCounty}
-                    <button onClick={() => setSelectedCounty('')} className="hover:text-blue-200"><X className="w-3 h-3" /></button>
+                    <button onClick={() => setSelectedCounty('')} className="text-black hover:opacity-70"><X className="w-3 h-3" /></button>
                   </span>
                 )}
 
                 {locationSearch && (
-                  <span className="px-3 py-1 bg-blue-50 text-blue-700 border border-blue-200 font-bold rounded-lg text-[10px] flex items-center gap-1.5">
+                  <span className="px-3 py-1 bg-slate-100 text-black border border-slate-300 font-black rounded-lg text-[10px] flex items-center gap-1.5">
                     Area: "{locationSearch}"
-                    <button onClick={() => setLocationSearch('')} className="hover:text-blue-900"><X className="w-3 h-3" /></button>
+                    <button onClick={() => setLocationSearch('')} className="text-black hover:opacity-70"><X className="w-3 h-3" /></button>
                   </span>
                 )}
 
                 {minPrice && (
-                  <span className="px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold rounded-lg text-[10px] flex items-center gap-1.5">
+                  <span className="px-3 py-1 bg-slate-100 text-black border border-slate-300 font-black rounded-lg text-[10px] flex items-center gap-1.5">
                     Min KES {Number(minPrice).toLocaleString()}
-                    <button onClick={() => setMinPrice('')} className="hover:text-emerald-900"><X className="w-3 h-3" /></button>
+                    <button onClick={() => setMinPrice('')} className="text-black hover:opacity-70"><X className="w-3 h-3" /></button>
                   </span>
                 )}
 
                 {maxPrice && (
-                  <span className="px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold rounded-lg text-[10px] flex items-center gap-1.5">
+                  <span className="px-3 py-1 bg-slate-100 text-black border border-slate-300 font-black rounded-lg text-[10px] flex items-center gap-1.5">
                     Max KES {Number(maxPrice).toLocaleString()}
-                    <button onClick={() => setMaxPrice('')} className="hover:text-emerald-900"><X className="w-3 h-3" /></button>
+                    <button onClick={() => setMaxPrice('')} className="text-black hover:opacity-70"><X className="w-3 h-3" /></button>
                   </span>
                 )}
 
                 {minUnits && (
-                  <span className="px-3 py-1 bg-amber-50 text-amber-700 border border-amber-200 font-bold rounded-lg text-[10px] flex items-center gap-1.5">
+                  <span className="px-3 py-1 bg-slate-100 text-black border border-slate-300 font-black rounded-lg text-[10px] flex items-center gap-1.5">
                     {minUnits}+ Units Vacant
-                    <button onClick={() => setMinUnits('')} className="hover:text-amber-900"><X className="w-3 h-3" /></button>
+                    <button onClick={() => setMinUnits('')} className="text-black hover:opacity-70"><X className="w-3 h-3" /></button>
                   </span>
                 )}
               </div>
@@ -412,9 +503,9 @@ const HomePage: React.FC = () => {
               {hasActiveFilters && (
                 <button 
                   onClick={clearFilters} 
-                  className="text-[10px] font-black text-red-600 hover:text-red-700 uppercase tracking-widest flex items-center gap-1.5 hover:underline"
+                  className="text-[10px] font-black text-black hover:underline uppercase tracking-widest flex items-center gap-1.5"
                 >
-                  <RotateCcw className="w-3.5 h-3.5" /> Clear All Filters
+                  <RotateCcw className="w-3.5 h-3.5 text-black" /> Clear All Filters
                 </button>
               )}
             </div>
@@ -447,7 +538,7 @@ const HomePage: React.FC = () => {
       </section>
 
       {/* Hub CTA Section */}
-      <section className="py-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section id="partner" className="py-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bg-slate-900 rounded-[40px] p-12 md:p-20 relative overflow-hidden text-center md:text-left">
           <div className="absolute top-0 right-0 w-1/2 h-full opacity-10 pointer-events-none">
              <Building2 className="w-full h-full text-white" />
@@ -481,6 +572,24 @@ const HomePage: React.FC = () => {
       <ReportFraudModal
         isOpen={showFraudModal}
         onClose={() => setShowFraudModal(false)}
+      />
+
+      {/* Geographic Location Access Request Card */}
+      <LocationPermissionCard
+        isOpen={showLocationCard}
+        onClose={() => setShowLocationCard(false)}
+        onLocationGranted={({ county }) => {
+          if (county) {
+            setSelectedCounty(county);
+            setDetectedLocationInfo(county);
+            const listingsEl = document.getElementById('listings');
+            if (listingsEl) {
+              setTimeout(() => {
+                listingsEl.scrollIntoView({ behavior: 'smooth' });
+              }, 1200);
+            }
+          }
+        }}
       />
     </div>
   );

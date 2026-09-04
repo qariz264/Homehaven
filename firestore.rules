@@ -1,14 +1,18 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Default deny
+    // Default deny catch-all
     match /{document=**} {
       allow read, write: if false;
     }
 
-    // Helper functions
+    // Security & Identity primitives
     function isSignedIn() {
       return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
     }
 
     function isAdmin() {
@@ -19,32 +23,134 @@ service cloud.firestore {
       );
     }
 
-    // User Profile Rules
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // --- 1. USER PROFILES (/users/{userId}) ---
+    // PII Protection: Private National ID, KRA PIN, M-Pesa payout phones must only be readable by self or admin.
     match /users/{userId} {
-      allow read: if true;
-      allow create, update: if isSignedIn() && (request.auth.uid == userId || isAdmin());
-      allow delete: if isAdmin();
+      allow get: if isValidId(userId) && (isOwner(userId) || isAdmin());
+      allow list: if isAdmin();
+
+      // Create: User can register their own profile; cannot self-assign admin role unless verified admin email
+      allow create: if isValidId(userId) && isSignedIn() && (
+        (isOwner(userId) && (
+          (request.auth.token.email != null && request.auth.token.email.lower() == 'stephenkariuki955@gmail.com') ||
+          incoming().role != 'admin'
+        ) && (
+          !('suspended' in incoming()) || incoming().suspended == false
+        ) && incoming().email is string && incoming().email.size() <= 150) ||
+        isAdmin()
+      );
+
+      // Update: User can edit profile details but CANNOT escalate role or change suspended status
+      allow update: if isValidId(userId) && isSignedIn() && (
+        isAdmin() ||
+        (isOwner(userId) && 
+         incoming().role == existing().role && 
+         (!('suspended' in existing()) || incoming().get('suspended', false) == existing().suspended) &&
+         (!('nationalId' in incoming()) || incoming().nationalId is string && incoming().nationalId.size() <= 50) &&
+         (!('kraPin' in incoming()) || incoming().kraPin is string && incoming().kraPin.size() <= 30) &&
+         (!('payoutPhone' in incoming()) || incoming().payoutPhone is string && incoming().payoutPhone.size() <= 30)
+        )
+      );
+
+      allow delete: if isValidId(userId) && isAdmin();
     }
 
-    // Listing Rules
+    // --- 2. PROPERTY LISTINGS (/listings/{listingId}) ---
+    // Listings are publicly browsable; updates and creations are guarded against fraud & bypassing fees.
     match /listings/{listingId} {
-      allow read: if true;
-      allow create: if isSignedIn() && (request.resource.data.ownerId == request.auth.uid || isAdmin());
-      allow update: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
-      allow delete: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
+      allow get: if isValidId(listingId);
+      allow list: if true;
+
+      // Creation: must be signed in, ownerId must be the author, initial status cannot be self-activated as active
+      allow create: if isValidId(listingId) && isSignedIn() && (
+        isAdmin() ||
+        (incoming().ownerId == request.auth.uid &&
+         incoming().title is string && incoming().title.size() > 0 && incoming().title.size() <= 150 &&
+         incoming().description is string && incoming().description.size() <= 5000 &&
+         incoming().price is number && incoming().price >= 0 && incoming().price <= 100000000 &&
+         (incoming().status == 'pending' || incoming().status == 'draft') &&
+         (!('paymentStatus' in incoming()) || incoming().paymentStatus != 'verified')
+        )
+      );
+
+      // Update: Only owner or admin. Owner cannot change ownerId or createdAt.
+      // Non-admin owner cannot self-approve paymentStatus as 'verified'.
+      allow update: if isValidId(listingId) && isSignedIn() && (
+        isAdmin() ||
+        (existing().ownerId == request.auth.uid &&
+         incoming().ownerId == existing().ownerId &&
+         (!('title' in incoming()) || (incoming().title is string && incoming().title.size() <= 150)) &&
+         (!('description' in incoming()) || (incoming().description is string && incoming().description.size() <= 5000)) &&
+         (!('paymentStatus' in incoming()) || incoming().paymentStatus != 'verified' || existing().paymentStatus == 'verified') &&
+         (!('status' in incoming()) || incoming().status != 'active' || existing().status == 'active')
+        )
+      );
+
+      allow delete: if isValidId(listingId) && isSignedIn() && (existing().ownerId == request.auth.uid || isAdmin());
     }
 
-    // Complaints Rules
+    // --- 3. COMPLAINTS & FRAUD REPORTS (/complaints/{complaintId}) ---
+    // Confidential triage: complainants and admins can read; anyone can report fraud with valid payload
     match /complaints/{complaintId} {
-      allow read: if isSignedIn();
-      allow create: if true;
-      allow update, delete: if isAdmin();
+      allow get: if isValidId(complaintId) && (
+        isAdmin() || 
+        (isSignedIn() && (
+          (resource.data.complainantEmail != null && request.auth.token.email != null && resource.data.complainantEmail.lower() == request.auth.token.email.lower()) ||
+          (resource.data.complainantUid != null && resource.data.complainantUid == request.auth.uid)
+        ))
+      );
+      
+      allow list: if isAdmin();
+
+      // Create: Allow submission with bounded fields and default pending status
+      allow create: if isValidId(complaintId) && (
+        incoming().listingId is string && incoming().listingId.size() <= 128 &&
+        incoming().details is string && incoming().details.size() <= 3000 &&
+        incoming().status == 'pending'
+      );
+
+      allow update, delete: if isValidId(complaintId) && isAdmin();
     }
 
-    // Payment Records
+    // --- 4. FINANCIAL PAYMENT AUDIT RECORDS (/payments/{paymentId}) ---
+    // Zero-trust ledger: only owner or admin can read; regular users can only submit pending verification
     match /payments/{paymentId} {
-      allow read: if isSignedIn();
-      allow write: if isSignedIn();
+      allow get: if isValidId(paymentId) && (
+        isAdmin() ||
+        (isSignedIn() && (
+          resource.data.ownerId == request.auth.uid ||
+          (resource.data.customerEmail != null && request.auth.token.email != null && resource.data.customerEmail.lower() == request.auth.token.email.lower())
+        ))
+      );
+
+      allow list: if isAdmin() || (
+        isSignedIn() && resource.data.ownerId == request.auth.uid
+      );
+
+      // Create: Users submitting manual verification can only create pending_verification status
+      allow create: if isValidId(paymentId) && isSignedIn() && (
+        isAdmin() ||
+        (incoming().ownerId == request.auth.uid &&
+         incoming().status == 'pending_verification' &&
+         incoming().amount is number && incoming().amount > 0 && incoming().amount <= 10000000 &&
+         incoming().reference is string && incoming().reference.size() <= 128
+        )
+      );
+
+      // Update & Delete: Strictly locked to administrators
+      allow update, delete: if isValidId(paymentId) && isAdmin();
     }
   }
 }

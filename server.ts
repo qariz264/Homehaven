@@ -8,6 +8,7 @@ import axios from "axios";
 import { initializeApp, cert, getApps } from "firebase-admin/app";
 import { getFirestore, FieldValue, Timestamp } from "firebase-admin/firestore";
 import { paystackService } from "./src/services/paystackService.js";
+import { sendOtpEmail, verifySubmittedOtp } from "./src/services/otpService.js";
 
 dotenv.config();
 
@@ -75,16 +76,84 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
-  app.use(express.json());
+  // Defensive HTTP Security Headers
+  app.use((req, res, next) => {
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader("X-Frame-Options", "SAMEORIGIN");
+    res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+    res.setHeader("X-XSS-Protection", "1; mode=block");
+    next();
+  });
+
+  // Preserve raw body buffer for cryptographically exact HMAC signature validation
+  app.use(express.json({
+    limit: "1mb",
+    verify: (req: any, _res, buf) => {
+      req.rawBody = buf;
+    }
+  }));
 
   // API Routes
   
-  // Paystack Payment Initiation
+  // Send OTP for email verification
+  app.post("/api/auth/send-otp", async (req, res) => {
+    const { email, name } = req.body;
+
+    if (!email || typeof email !== "string" || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      return res.status(400).json({ error: "A valid email address is required" });
+    }
+
+    try {
+      const result = await sendOtpEmail(email.trim(), typeof name === "string" ? name.trim() : undefined);
+      if (!result.success) {
+        return res.status(429).json({ error: result.message });
+      }
+      res.json(result);
+    } catch (err: any) {
+      console.error("Send OTP Error:", err);
+      res.status(500).json({ error: "Failed to send verification email. Please try again." });
+    }
+  });
+
+  // Verify OTP submitted by user
+  app.post("/api/auth/verify-otp", async (req, res) => {
+    const { email, otp } = req.body;
+
+    if (!email || typeof email !== "string") {
+      return res.status(400).json({ error: "Email address is required" });
+    }
+
+    if (!otp || typeof otp !== "string") {
+      return res.status(400).json({ error: "Verification code is required" });
+    }
+
+    try {
+      const result = verifySubmittedOtp(email.trim(), otp.trim());
+      if (!result.success) {
+        return res.status(400).json({ error: result.message });
+      }
+      res.json({ success: true, verified: true, message: result.message });
+    } catch (err: any) {
+      console.error("Verify OTP Error:", err);
+      res.status(500).json({ error: "Failed to verify code. Please try again." });
+    }
+  });
+
+  // Paystack Payment Initiation with strict input validation
   app.post("/api/payment/initiate", async (req, res) => {
     const { email, amount, listingId, callbackUrl } = req.body;
     
-    if (!email || !amount || !listingId) {
-      return res.status(400).json({ error: "Missing required fields (email, amount, listingId)" });
+    if (!email || typeof email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      return res.status(400).json({ error: "A valid email address is required" });
+    }
+
+    const numAmount = Number(amount);
+    if (!numAmount || isNaN(numAmount) || numAmount <= 0 || numAmount > 10000000) {
+      return res.status(400).json({ error: "Valid amount between 1 and 10,000,000 is required" });
+    }
+
+    if (!listingId || typeof listingId !== 'string' || !/^[a-zA-Z0-9_\-]+$/.test(listingId) || listingId.length > 128) {
+      return res.status(400).json({ error: "Invalid listingId parameter format" });
     }
 
     try {
@@ -96,8 +165,8 @@ async function startServer() {
       }
 
       const response = await paystackService.initializeTransaction({
-        email,
-        amount,
+        email: email.trim(),
+        amount: numAmount,
         listingId,
         callbackUrl,
         reference: `pstk_${listingId}_${Date.now()}`
@@ -110,12 +179,12 @@ async function startServer() {
     }
   });
 
-  // Paystack Payment Verification
+  // Paystack Payment Verification with parameterized validation
   app.get("/api/payment/verify/:reference", async (req, res) => {
     const { reference } = req.params;
     
-    if (!reference) {
-      return res.status(400).json({ error: "Missing required parameter: reference" });
+    if (!reference || typeof reference !== 'string' || !/^[a-zA-Z0-9_\-]+$/.test(reference) || reference.length > 128) {
+      return res.status(400).json({ error: "Missing or invalid reference parameter" });
     }
 
     try {
@@ -187,21 +256,31 @@ async function startServer() {
     }
   });
 
-  // Paystack Webhook Callback
+  // Paystack Webhook Callback with mandatory HMAC-SHA512 verification (No Bypass)
   app.post("/api/paystack/webhook", async (req, res) => {
     const signature = req.headers["x-paystack-signature"] as string;
     
-    // Verify signature if header is present
-    if (signature && process.env.PAYSTACK_SECRET_KEY) {
-      const isValid = paystackService.verifyWebhookSignature(req.body, signature);
-      if (!isValid) {
-        console.warn("Invalid Paystack webhook signature received");
-        return res.status(400).json({ error: "Invalid signature" });
-      }
+    // Strict authentication: reject any request without signature
+    if (!signature) {
+      console.warn("[Security Alert] Blocked unauthenticated request to /api/paystack/webhook missing signature");
+      return res.status(401).json({ error: "Missing x-paystack-signature header" });
+    }
+
+    const secretKey = process.env.PAYSTACK_SECRET_KEY;
+    if (!secretKey) {
+      console.error("[Security Alert] PAYSTACK_SECRET_KEY not configured for webhook verification");
+      return res.status(503).json({ error: "Paystack secret key is not configured" });
+    }
+
+    const rawPayload = (req as any).rawBody || req.body;
+    const isValid = paystackService.verifyWebhookSignature(rawPayload, signature);
+    if (!isValid) {
+      console.warn("[Security Alert] Forged or invalid Paystack webhook signature rejected!");
+      return res.status(401).json({ error: "Invalid signature" });
     }
 
     const event = req.body;
-    console.log("Paystack Webhook Event Received:", event?.event);
+    console.log("Paystack Webhook Event Received & Verified Authenticity:", event?.event);
 
     if (event?.event === "charge.success") {
       const { metadata, amount, reference, customer } = event.data || {};
@@ -250,8 +329,18 @@ async function startServer() {
     res.json({ status: "ok" });
   });
 
-  // Automated Expiry Check (Can be triggered manually or run on startup)
+  // Automated Expiry Check (Protected against unauthorized public execution)
   app.get("/api/admin/check-expiry", async (req, res) => {
+    // Restrict access to internal loopback calls or valid admin token
+    const clientIp = req.ip || req.socket.remoteAddress || '';
+    const isLoopback = clientIp.includes('127.0.0.1') || clientIp === '::1' || clientIp === '::ffff:127.0.0.1';
+    const authHeader = req.headers["x-admin-key"] as string;
+    const adminSecret = process.env.ADMIN_SECRET;
+
+    if (!isLoopback && (!adminSecret || authHeader !== adminSecret)) {
+      return res.status(403).json({ error: "Forbidden: Unauthorized administrative endpoint access" });
+    }
+
     const firestore = getDb();
     if (!firestore) return res.json({ message: "Firebase Admin DB not configured on server", expiredCount: 0 });
 

@@ -2,38 +2,48 @@
   "entities": {
     "User": {
       "title": "User",
-      "description": "Represents a user in the system (Landlord, Admin, or Tenant)",
+      "description": "Represents a user profile with PII isolation and role-based access control",
       "type": "object",
       "properties": {
-        "id": { "type": "string" },
-        "name": { "type": "string" },
-        "email": { "type": "string" },
-        "phone": { "type": "string" },
+        "id": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 100 },
+        "businessName": { "type": "string", "maxLength": 150 },
+        "email": { "type": "string", "maxLength": 150 },
+        "phone": { "type": "string", "maxLength": 30 },
+        "payoutPhone": { "type": "string", "maxLength": 30 },
+        "nationalId": { "type": "string", "maxLength": 50 },
+        "kraPin": { "type": "string", "maxLength": 30 },
+        "county": { "type": "string", "maxLength": 50 },
+        "physicalAddress": { "type": "string", "maxLength": 200 },
         "role": { "type": "string", "enum": ["landlord", "admin", "tenant"] },
         "suspended": { "type": "boolean" },
         "createdAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["id", "name", "email", "role"]
+      "required": ["id", "email", "role"]
     },
     "Listing": {
       "title": "Listing",
-      "description": "A property listing",
+      "description": "A verified property listing on the Hub",
       "type": "object",
       "properties": {
-        "id": { "type": "string" },
-        "title": { "type": "string" },
-        "description": { "type": "string" },
+        "id": { "type": "string", "maxLength": 128 },
+        "title": { "type": "string", "maxLength": 150 },
+        "description": { "type": "string", "maxLength": 5000 },
         "price": { "type": "number" },
-        "location": { "type": "string" },
-        "county": { "type": "string" },
-        "preciseLocation": { "type": "string" },
+        "location": { "type": "string", "maxLength": 200 },
+        "county": { "type": "string", "maxLength": 50 },
+        "preciseLocation": { "type": "string", "maxLength": 150 },
         "unitsAvailable": { "type": "number" },
-        "landlordPhone": { "type": "string" },
-        "landlordEmail": { "type": "string" },
-        "images": { "type": "array", "items": { "type": "string" } },
-        "ownerId": { "type": "string" },
+        "landlordName": { "type": "string", "maxLength": 100 },
+        "landlordPhone": { "type": "string", "maxLength": 30 },
+        "landlordEmail": { "type": "string", "maxLength": 150 },
+        "images": { "type": "array" },
+        "ownerId": { "type": "string", "maxLength": 128 },
         "status": { "type": "string", "enum": ["pending", "active", "suspended", "expired"] },
+        "paymentStatus": { "type": "string", "enum": ["unpaid", "pending_manual_verification", "verified", "rejected"] },
+        "paymentRef": { "type": "string", "maxLength": 100 },
         "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" },
         "expiresAt": { "type": "string", "format": "date-time" },
         "lat": { "type": "number" },
         "lng": { "type": "number" }
@@ -42,53 +52,72 @@
     },
     "Complaint": {
       "title": "Complaint",
-      "description": "Tenant complaints filed against listings or landlords",
+      "description": "Tenant complaints and fraud reports filed against listings or landlords",
       "type": "object",
       "properties": {
-        "id": { "type": "string" },
-        "listingId": { "type": "string" },
-        "listingTitle": { "type": "string" },
-        "landlordEmail": { "type": "string" },
-        "complainantEmail": { "type": "string" },
-        "reason": { "type": "string" },
-        "details": { "type": "string" },
+        "id": { "type": "string", "maxLength": 128 },
+        "listingId": { "type": "string", "maxLength": 128 },
+        "listingTitle": { "type": "string", "maxLength": 150 },
+        "landlordEmail": { "type": "string", "maxLength": 150 },
+        "complainantName": { "type": "string", "maxLength": 100 },
+        "complainantEmail": { "type": "string", "maxLength": 150 },
+        "complainantPhone": { "type": "string", "maxLength": 30 },
+        "category": { "type": "string", "maxLength": 100 },
+        "reason": { "type": "string", "maxLength": 150 },
+        "details": { "type": "string", "maxLength": 3000 },
         "status": { "type": "string", "enum": ["pending", "resolved", "dismissed"] },
         "createdAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["listingId", "reason", "details", "status", "createdAt"]
+      "required": ["listingId", "details", "status"]
     },
     "Payment": {
       "title": "Payment",
-      "description": "A payment record from Paystack",
+      "description": "Financial records of Paystack and M-Pesa manual verification transactions",
       "type": "object",
       "properties": {
-        "id": { "type": "string" },
-        "customerEmail": { "type": "string" },
+        "id": { "type": "string", "maxLength": 128 },
+        "listingId": { "type": "string", "maxLength": 128 },
+        "listingTitle": { "type": "string", "maxLength": 150 },
+        "ownerId": { "type": "string", "maxLength": 128 },
+        "landlordName": { "type": "string", "maxLength": 100 },
+        "landlordEmail": { "type": "string", "maxLength": 150 },
+        "landlordPhone": { "type": "string", "maxLength": 30 },
+        "customerEmail": { "type": "string", "maxLength": 150 },
         "amount": { "type": "number" },
-        "transactionId": { "type": "string" },
-        "listingId": { "type": "string" },
-        "status": { "type": "string" },
+        "method": { "type": "string", "maxLength": 50 },
+        "reference": { "type": "string", "maxLength": 128 },
+        "transactionId": { "type": "string", "maxLength": 128 },
+        "payerPhone": { "type": "string", "maxLength": 30 },
+        "payerName": { "type": "string", "maxLength": 100 },
+        "verificationType": { "type": "string", "enum": ["manual", "automated"] },
+        "status": { "type": "string", "enum": ["pending_verification", "verified", "rejected", "success"] },
+        "notes": { "type": "string", "maxLength": 500 },
+        "verifiedBy": { "type": "string", "maxLength": 150 },
+        "verifiedAt": { "type": "string", "format": "date-time" },
+        "rejectionReason": { "type": "string", "maxLength": 500 },
+        "rejectedAt": { "type": "string", "format": "date-time" },
+        "rejectedBy": { "type": "string", "maxLength": 150 },
         "createdAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["amount", "transactionId", "listingId", "status", "createdAt"]
+      "required": ["listingId", "amount", "status"]
     }
   },
   "firestore": {
     "/users/{userId}": {
       "schema": "User",
-      "description": "User profiles"
+      "description": "Landlord and admin user profiles containing sensitive PII and role declarations"
     },
     "/listings/{listingId}": {
       "schema": "Listing",
-      "description": "Property listings"
+      "description": "Property listings accessible to public for viewing active units and managed by owners/admins"
     },
     "/complaints/{complaintId}": {
       "schema": "Complaint",
-      "description": "Tenant complaints"
+      "description": "Tenant complaints and fraud reports with restricted access for administrative triage"
     },
     "/payments/{paymentId}": {
       "schema": "Payment",
-      "description": "Payment records"
+      "description": "Financial ledger of listing activation fees and manual payment verification audit records"
     }
   }
 }

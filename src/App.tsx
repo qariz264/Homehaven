@@ -12,12 +12,20 @@ export interface UserProfile {
   phone: string;
   role: 'landlord' | 'tenant' | 'admin';
   suspended?: boolean;
+  businessName?: string;
+  nationalId?: string;
+  kraPin?: string;
+  payoutPhone?: string;
+  county?: string;
+  physicalAddress?: string;
+  createdAt?: string;
 }
 
 interface AuthContextType {
   user: FirebaseUser | null;
   profile: UserProfile | null;
   loading: boolean;
+  setProfile?: React.Dispatch<React.SetStateAction<UserProfile | null>>;
 }
 
 const AuthContext = createContext<AuthContextType>({ user: null, profile: null, loading: true });
@@ -106,7 +114,7 @@ const App: React.FC = () => {
   }
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading }}>
+    <AuthContext.Provider value={{ user, profile, loading, setProfile }}>
       <Router>
         <div className="flex flex-col min-h-screen">
           <Navbar />
