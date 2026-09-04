@@ -35,6 +35,7 @@ import RentalIncomeTrendsChart from '../components/RentalIncomeTrendsChart';
 import LandlordRegistry from '../components/LandlordRegistry';
 import { useSEO } from '../hooks/useSEO';
 import axios from 'axios';
+import { launchPaystackCheckout, getPaystackConfig, PaystackConfig } from '../services/paystackClient';
 
 const LandlordDashboard: React.FC = () => {
   const { profile, setProfile } = useAuth();
@@ -111,7 +112,7 @@ const LandlordDashboard: React.FC = () => {
       .reduce((sum, l) => sum + (Number(l.price) || 0), 0);
   }, [listings]);
 
-  const verifyPaystackPayment = async (reference: string) => {
+  const verifyPaystackPayment = async (reference: string, overrideListingId?: string) => {
     setVerifyingRef(reference);
     setMessage({ type: 'success', text: 'Autoverifying Paystack transaction reference...' });
     
@@ -119,7 +120,7 @@ const LandlordDashboard: React.FC = () => {
       const response = await axios.get(`/api/payment/verify/${reference}`);
       if (response.data?.status && response.data?.data?.status === 'success') {
         const searchParams = new URLSearchParams(window.location.search);
-        let targetListingId = response.data.data?.metadata?.listingId || searchParams.get('listingId');
+        let targetListingId = overrideListingId || response.data.data?.metadata?.listingId || searchParams.get('listingId');
         if (!targetListingId && reference.startsWith('pstk_')) {
           const parts = reference.split('_');
           if (parts.length >= 2) targetListingId = parts[1];
@@ -173,35 +174,44 @@ const LandlordDashboard: React.FC = () => {
     setPaymentLoading(listingId);
     setMessage(null);
     try {
-      const callbackUrl = `${window.location.origin}/dashboard`;
-      const response = await axios.post('/api/payment/initiate', {
+      const targetListing = listings.find(l => l.id === listingId);
+      const checkoutResult = await launchPaystackCheckout({
         email: profile.email,
         amount: 1500, // Fixed package price KES 1,500
         listingId,
-        callbackUrl
+        listingTitle: targetListing?.title || 'Property Listing',
+        onSuccess: async (verifiedReference) => {
+          await verifyPaystackPayment(verifiedReference, listingId);
+        },
+        onFallbackRedirect: (authUrl, ref) => {
+          setActivePaystackModal({
+            listing: targetListing || { id: listingId, title: 'Property Listing' },
+            authUrl,
+            reference: ref
+          });
+          const newWin = window.open(authUrl, '_blank');
+          if (!newWin) {
+            setMessage({
+              type: 'success',
+              text: 'Paystack checkout session created. Please use the checkout dialog to complete payment.'
+            });
+          }
+        }
       });
-      
-      if (response.data.data?.authorization_url) {
-        const authUrl = response.data.data.authorization_url;
-        const ref = response.data.data.reference;
-        const targetListing = listings.find(l => l.id === listingId);
 
+      if (checkoutResult.authUrl) {
         setActivePaystackModal({
           listing: targetListing || { id: listingId, title: 'Property Listing' },
-          authUrl,
-          reference: ref
+          authUrl: checkoutResult.authUrl,
+          reference: checkoutResult.reference
         });
+      }
 
-        // Open in a new tab to avoid iframe/sandbox embedding restrictions
-        const newWin = window.open(authUrl, '_blank');
-        if (!newWin) {
-          setMessage({
-            type: 'success',
-            text: 'Paystack checkout session created. Please use the checkout dialog to complete payment.'
-          });
-        }
-      } else {
-        setMessage({ type: 'error', text: 'Failed to generate Paystack checkout link. Please verify your Paystack credentials.' });
+      if (checkoutResult.scriptBlocked) {
+        setMessage({
+          type: 'error',
+          text: 'Notice: External Paystack script (js.paystack.co) was blocked by your browser/ad-blocker. A direct checkout tab has been opened.'
+        });
       }
     } catch (err: any) {
       console.error('Paystack initiate error:', err);

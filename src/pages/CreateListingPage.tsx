@@ -30,6 +30,12 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { useSEO } from '../hooks/useSEO';
 import axios from 'axios';
+import { 
+  launchPaystackCheckout, 
+  getPaystackConfig, 
+  ensurePaystackScriptLoaded, 
+  PaystackConfig 
+} from '../services/paystackClient';
 
 const PROPERTY_TYPES = [
   '1 Bedroom Apartment',
@@ -122,6 +128,16 @@ const CreateListingPage: React.FC = () => {
   const [createdListingId, setCreatedListingId] = useState<string | null>(null);
   const [verifyingPayment, setVerifyingPayment] = useState(false);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
+  const [paystackConfig, setPaystackConfig] = useState<PaystackConfig | null>(null);
+  const [scriptBlocked, setScriptBlocked] = useState(false);
+
+  // Probe Paystack environment and script availability on mount
+  React.useEffect(() => {
+    getPaystackConfig().then(cfg => setPaystackConfig(cfg)).catch(() => {});
+    ensurePaystackScriptLoaded().then(res => {
+      if (res.blocked) setScriptBlocked(true);
+    }).catch(() => {});
+  }, []);
 
   // Manual payment state
   const [manualCode, setManualCode] = useState('');
@@ -278,58 +294,21 @@ const CreateListingPage: React.FC = () => {
     }
   };
 
-  // Paystack checkout initiator
-  const handleInitiatePaystack = async () => {
-    setError('');
-    setPaystackLoading(true);
-
-    try {
-      const listingId = await saveListingRecord('pending');
-      const callbackUrl = `${window.location.origin}/dashboard`;
-      
-      const res = await axios.post('/api/payment/initiate', {
-        email: landlordEmail.trim() || profile?.email || 'landlord@example.com',
-        amount: 1500, // Fixed KES 1,500 activation fee
-        listingId,
-        callbackUrl
-      });
-
-      const data = res.data;
-      if (data.status && data.data?.authorization_url) {
-        const authUrl = data.data.authorization_url;
-        const ref = data.data.reference;
-        setPaystackAuthUrl(authUrl);
-        setPaystackReference(ref);
-
-        // Open Paystack checkout in a new window to prevent iframe block
-        const checkoutWindow = window.open(authUrl, '_blank');
-        if (!checkoutWindow) {
-          setError('Popup was blocked by your browser. Please click the "Open Paystack Checkout" link below.');
-        }
-      } else {
-        throw new Error(data.error || data.message || 'Failed to initialize Paystack checkout.');
-      }
-    } catch (err: any) {
-      console.error('Paystack initiation error:', err);
-      setError(err.response?.data?.error || err.message || 'Could not load Paystack checkout. Please try again or use manual M-Pesa submission.');
-    } finally {
-      setPaystackLoading(false);
-    }
-  };
-
   // Verify payment manually or after returning from Paystack
-  const handleVerifyPayment = async () => {
-    if (!paystackReference) return;
+  const handleVerifyPayment = async (overrideRef?: string, overrideListingId?: string) => {
+    const refToVerify = overrideRef || paystackReference;
+    if (!refToVerify) return;
     setVerifyingPayment(true);
     setError('');
 
     try {
-      const res = await axios.get(`/api/payment/verify/${paystackReference}`);
+      const res = await axios.get(`/api/payment/verify/${refToVerify}`);
       if (res.data?.status && res.data?.data?.status === 'success') {
         setPaymentSuccess(true);
-        if (createdListingId) {
+        const lId = overrideListingId || createdListingId;
+        if (lId) {
           try {
-            await updateDoc(doc(db, 'listings', createdListingId), {
+            await updateDoc(doc(db, 'listings', lId), {
               status: 'active',
               updatedAt: serverTimestamp()
             });
@@ -348,6 +327,52 @@ const CreateListingPage: React.FC = () => {
       setError(err.response?.data?.error || err.message || 'Verification failed. Please check your reference.');
     } finally {
       setVerifyingPayment(false);
+    }
+  };
+
+  // Paystack checkout initiator supporting inline popup and fallback window
+  const handleInitiatePaystack = async () => {
+    setError('');
+    setPaystackLoading(true);
+
+    try {
+      const listingId = await saveListingRecord('pending');
+
+      const checkoutResult = await launchPaystackCheckout({
+        email: landlordEmail.trim() || profile?.email || 'landlord@example.com',
+        amount: 1500, // Fixed KES 1,500 activation fee
+        listingId,
+        listingTitle: title.trim() || 'HomeHaven Listing',
+        onSuccess: async (verifiedReference) => {
+          setPaystackReference(verifiedReference);
+          await handleVerifyPayment(verifiedReference, listingId);
+        },
+        onFallbackRedirect: (authUrl, ref) => {
+          setPaystackAuthUrl(authUrl);
+          setPaystackReference(ref);
+          const win = window.open(authUrl, '_blank');
+          if (!win) {
+            setError('Popup was blocked by your browser. Please click the "Open Checkout Window" button below.');
+          }
+        }
+      });
+
+      if (checkoutResult.authUrl) {
+        setPaystackAuthUrl(checkoutResult.authUrl);
+      }
+      if (checkoutResult.reference) {
+        setPaystackReference(checkoutResult.reference);
+      }
+
+      if (checkoutResult.scriptBlocked) {
+        setScriptBlocked(true);
+        setError('Notice: External script (https://js.paystack.co/v1/inline.js) was blocked by browser privacy/adblocker settings. Direct checkout tab opened.');
+      }
+    } catch (err: any) {
+      console.error('Paystack initiation error:', err);
+      setError(err.response?.data?.error || err.message || 'Could not load Paystack checkout. Please try again or use manual M-Pesa submission.');
+    } finally {
+      setPaystackLoading(false);
     }
   };
 
@@ -952,9 +977,25 @@ const CreateListingPage: React.FC = () => {
                           <div className="p-6 bg-emerald-50/80 border border-emerald-200 rounded-3xl space-y-5">
                             <div className="flex items-start justify-between gap-4">
                               <div>
-                                <span className="px-2.5 py-1 rounded-md bg-emerald-600 text-white text-[10px] font-black uppercase tracking-wider">
-                                  Secure Checkout
-                                </span>
+                                <div className="flex items-center gap-2">
+                                  <span className="px-2.5 py-1 rounded-md bg-emerald-600 text-white text-[10px] font-black uppercase tracking-wider">
+                                    Secure Checkout
+                                  </span>
+                                  {paystackConfig?.isConfigured ? (
+                                    <span className="px-2 py-0.5 rounded-md bg-blue-100 text-blue-700 text-[10px] font-mono font-bold">
+                                      Key: {paystackConfig.mode.toUpperCase()} ({paystackConfig.publicKey.slice(0, 10)}...)
+                                    </span>
+                                  ) : (
+                                    <span className="px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 text-[10px] font-medium">
+                                      Demo Sandbox Ready
+                                    </span>
+                                  )}
+                                  {scriptBlocked && (
+                                    <span className="px-2 py-0.5 rounded-md bg-amber-200 text-amber-900 text-[10px] font-bold">
+                                      Inline Script Blocked (Direct Fallback Active)
+                                    </span>
+                                  )}
+                                </div>
                                 <h4 className="text-lg font-black text-slate-900 mt-2">
                                   Paystack Listing Activation (KES 1,500)
                                 </h4>

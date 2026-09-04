@@ -102,6 +102,23 @@ async function startServer() {
   app.post("/api/auth/verify-otp", verifyOtpHandler);
   app.post("/api/auth/resend-otp", resendOtpHandler);
 
+  // Paystack Public Configuration (for client-side popup initialization)
+  app.get("/api/payment/config", (req, res) => {
+    const publicKey = process.env.VITE_PAYSTACK_PUBLIC_KEY || process.env.PAYSTACK_PUBLIC_KEY || "";
+    const isConfigured = Boolean(
+      publicKey &&
+      (publicKey.startsWith("pk_live_") || publicKey.startsWith("pk_test_")) &&
+      publicKey !== "pk_live_your_live_public_key"
+    );
+    res.json({
+      publicKey,
+      isConfigured,
+      currency: "KES",
+      amount: 1500,
+      mode: publicKey.startsWith("pk_live_") ? "live" : "test"
+    });
+  });
+
   // Paystack Payment Initiation with strict input validation and sandbox demo support
   app.post("/api/payment/initiate", async (req, res) => {
     const { email, amount, listingId, callbackUrl } = req.body;
@@ -121,6 +138,7 @@ async function startServer() {
 
     try {
       const secretKey = process.env.PAYSTACK_SECRET_KEY;
+      const publicKey = process.env.VITE_PAYSTACK_PUBLIC_KEY || process.env.PAYSTACK_PUBLIC_KEY || "";
       const isLiveKey = Boolean(
         secretKey && 
         (secretKey.startsWith('sk_live_') || secretKey.startsWith('sk_test_')) &&
@@ -138,7 +156,11 @@ async function startServer() {
             callbackUrl,
             reference: `pstk_${listingId}_${Date.now()}`
           });
-          return res.json(response);
+          return res.json({
+            ...response,
+            publicKey,
+            isSandbox: false
+          });
         } catch (paystackApiErr: any) {
           console.warn("Paystack Live API initialization error, falling back to sandbox:", paystackApiErr.message);
         }
@@ -154,6 +176,7 @@ async function startServer() {
         status: true,
         message: "Paystack checkout initialized in test sandbox mode.",
         isSandbox: true,
+        publicKey,
         data: {
           authorization_url: redirectUrl,
           access_code: `demo_${Date.now()}`,
