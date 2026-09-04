@@ -339,7 +339,7 @@ const CreateListingPage: React.FC = () => {
       const listingId = await saveListingRecord('pending');
 
       // Pass public key directly from component state instead of relying on window variables
-      const componentPublicKey = paystackConfig?.publicKey || (import.meta.env.VITE_PAYSTACK_PUBLIC_KEY as string) || '';
+      const componentPublicKey = paystackConfig?.publicKey || import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || import.meta.env.PAYSTACK_PUBLIC_KEY || '';
 
       const checkoutResult = await launchPaystackCheckout({
         publicKey: componentPublicKey,

@@ -178,7 +178,7 @@ const LandlordDashboard: React.FC = () => {
     try {
       const targetListing = listings.find(l => l.id === listingId);
       // Pass public key directly from component level
-      const componentPublicKey = paystackConfig?.publicKey || (import.meta.env.VITE_PAYSTACK_PUBLIC_KEY as string) || '';
+      const componentPublicKey = paystackConfig?.publicKey || import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || import.meta.env.PAYSTACK_PUBLIC_KEY || '';
 
       const checkoutResult = await launchPaystackCheckout({
         publicKey: componentPublicKey,

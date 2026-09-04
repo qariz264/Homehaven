@@ -95,8 +95,13 @@ export async function getPaystackConfig(): Promise<PaystackConfig> {
     return cachedConfig;
   }
 
-  // 1. Check client-side build-time environment variables
-  const envKey = (import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || process.env.PAYSTACK_PUBLIC_KEY || '') as string;
+  // 1. Check client-side build-time environment variables (both VITE_ and non-VITE forms)
+  const envKey = (
+    import.meta.env.VITE_PAYSTACK_PUBLIC_KEY ||
+    import.meta.env.PAYSTACK_PUBLIC_KEY ||
+    (typeof process !== 'undefined' ? (process.env?.PAYSTACK_PUBLIC_KEY || process.env?.VITE_PAYSTACK_PUBLIC_KEY) : '') ||
+    ''
+  ) as string;
   
   try {
     // 2. Fetch server-side configuration to ensure production sync

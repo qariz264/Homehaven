@@ -5,74 +5,20 @@ import fs from "fs";
 import { fileURLToPath } from "url";
 import dotenv from "dotenv";
 import axios from "axios";
-import { initializeApp, cert, getApps } from "firebase-admin/app";
-import { getFirestore, FieldValue, Timestamp } from "firebase-admin/firestore";
-import { paystackService } from "./src/services/paystackService.js";
+import { getAdminDb, Timestamp } from "./src/lib/firebaseAdmin.js";
 import sendOtpHandler from "./api/auth/send-otp.js";
 import verifyOtpHandler from "./api/auth/verify-otp.js";
 import resendOtpHandler from "./api/auth/resend-otp.js";
+import configHandler from "./api/payment/config.js";
+import initiatePaymentHandler from "./api/payment/initiate.js";
+import verifyPaymentHandler from "./api/payment/verify.js";
+import webhookHandler from "./api/paystack/webhook.js";
+import healthHandler from "./api/health.js";
 
 dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
-// Initialize Firebase Admin
-let db: any = null;
-
-function getDb() {
-  if (!db) {
-    try {
-      let firebaseConfig: any = null;
-      const configPath = path.join(process.cwd(), "firebase-applet-config.json");
-      if (fs.existsSync(configPath)) {
-        firebaseConfig = JSON.parse(fs.readFileSync(configPath, "utf8"));
-      }
-
-      const projectId = process.env.FIREBASE_PROJECT_ID || firebaseConfig?.projectId || "gen-lang-client-0750978639";
-      const databaseId = firebaseConfig?.firestoreDatabaseId || "ai-studio-8e7b370f-a125-45b3-9073-afa4676db100";
-      const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
-      const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n');
-
-      if (!clientEmail || !privateKey) {
-        console.warn("Firebase Admin service account key (FIREBASE_CLIENT_EMAIL / FIREBASE_PRIVATE_KEY) not provided. Skipping server-side admin Firestore initialization.");
-        return null;
-      }
-
-      if (clientEmail && !clientEmail.includes(projectId)) {
-        console.warn(`FIREBASE_CLIENT_EMAIL (${clientEmail}) project does not match target projectId (${projectId}). Skipping server-side Admin Firestore initialization.`);
-        return null;
-      }
-
-      const existingApps = getApps();
-      let app: any;
-
-      if (existingApps.length === 0) {
-        app = initializeApp({
-          credential: cert({
-            projectId,
-            clientEmail,
-            privateKey,
-          }),
-        });
-      } else {
-        app = existingApps[0];
-      }
-
-      if (databaseId && app) {
-        db = getFirestore(app, databaseId);
-      } else if (app) {
-        db = getFirestore(app);
-      } else {
-        db = getFirestore();
-      }
-    } catch (err) {
-      console.error("Firebase Admin initialization error:", err);
-      return null;
-    }
-  }
-  return db;
-}
 
 async function startServer() {
   const app = express();
@@ -102,294 +48,12 @@ async function startServer() {
   app.post("/api/auth/verify-otp", verifyOtpHandler);
   app.post("/api/auth/resend-otp", resendOtpHandler);
 
-  // Paystack Public Configuration (for client-side popup initialization)
-  app.get("/api/payment/config", (req, res) => {
-    const publicKey = process.env.VITE_PAYSTACK_PUBLIC_KEY || process.env.PAYSTACK_PUBLIC_KEY || "";
-    const isConfigured = Boolean(
-      publicKey &&
-      (publicKey.startsWith("pk_live_") || publicKey.startsWith("pk_test_")) &&
-      publicKey !== "pk_live_your_live_public_key"
-    );
-    res.json({
-      publicKey,
-      isConfigured,
-      currency: "KES",
-      amount: 1500,
-      mode: publicKey.startsWith("pk_live_") ? "live" : "test"
-    });
-  });
-
-  // Paystack Payment Initiation with strict input validation and sandbox demo support
-  app.post("/api/payment/initiate", async (req, res) => {
-    const { email, amount, listingId, callbackUrl } = req.body;
-    
-    if (!email || typeof email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-      return res.status(400).json({ error: "A valid email address is required" });
-    }
-
-    const numAmount = Number(amount);
-    if (!numAmount || isNaN(numAmount) || numAmount <= 0 || numAmount > 10000000) {
-      return res.status(400).json({ error: "Valid amount between 1 and 10,000,000 is required" });
-    }
-
-    if (!listingId || typeof listingId !== 'string' || !/^[a-zA-Z0-9_\-]+$/.test(listingId) || listingId.length > 128) {
-      return res.status(400).json({ error: "Invalid listingId parameter format" });
-    }
-
-    try {
-      const secretKey = process.env.PAYSTACK_SECRET_KEY;
-      const publicKey = process.env.VITE_PAYSTACK_PUBLIC_KEY || process.env.PAYSTACK_PUBLIC_KEY || "";
-      const isLiveKey = Boolean(
-        secretKey && 
-        (secretKey.startsWith('sk_live_') || secretKey.startsWith('sk_test_')) &&
-        secretKey !== 'sk_live_your_live_secret_key' &&
-        secretKey !== 'your_secret_key'
-      );
-
-      // If a real Paystack secret key is provided, initialize live transaction with Paystack API
-      if (isLiveKey) {
-        try {
-          const response = await paystackService.initializeTransaction({
-            email: email.trim(),
-            amount: numAmount,
-            listingId,
-            callbackUrl,
-            reference: `pstk_${listingId}_${Date.now()}`
-          });
-          return res.json({
-            ...response,
-            publicKey,
-            isSandbox: false
-          });
-        } catch (paystackApiErr: any) {
-          console.warn("Paystack Live API initialization error, falling back to sandbox:", paystackApiErr.message);
-        }
-      }
-
-      // Smooth Sandbox / Demo Checkout Fallback so listing creation and payment flow never breaks
-      const demoRef = `pstk_demo_${listingId}_${Date.now()}`;
-      const targetCallback = callbackUrl || '/dashboard';
-      const sep = targetCallback.includes('?') ? '&' : '?';
-      const redirectUrl = `${targetCallback}${sep}reference=${demoRef}&isSandbox=true&listingId=${listingId}`;
-
-      return res.json({
-        status: true,
-        message: "Paystack checkout initialized in test sandbox mode.",
-        isSandbox: true,
-        publicKey,
-        data: {
-          authorization_url: redirectUrl,
-          access_code: `demo_${Date.now()}`,
-          reference: demoRef
-        }
-      });
-    } catch (error: any) {
-      console.error("Paystack Initiation Error:", error.message || error);
-      res.status(500).json({ error: error.message || "Failed to initiate Paystack payment" });
-    }
-  });
-
-  // Paystack Payment Verification with parameterized validation
-  app.get("/api/payment/verify/:reference", async (req, res) => {
-    const { reference } = req.params;
-    
-    if (!reference || typeof reference !== 'string' || !/^[a-zA-Z0-9_\-]+$/.test(reference) || reference.length > 128) {
-      return res.status(400).json({ error: "Missing or invalid reference parameter" });
-    }
-
-    try {
-      let listingId = req.query.listingId as string;
-      if (!listingId && (reference.startsWith("pstk_") || reference.startsWith("pstk_demo_"))) {
-        const parts = reference.split("_");
-        if (reference.startsWith("pstk_demo_") && parts.length >= 3) {
-          listingId = parts[2];
-        } else if (parts.length >= 2) {
-          listingId = parts[1];
-        }
-      }
-
-      // Handle Sandbox / Demo Verification
-      if (reference.startsWith('pstk_demo_')) {
-        let firestore: any = null;
-        try {
-          firestore = getDb();
-        } catch (dbInitErr) {
-          console.warn("Firestore Admin not available on server:", dbInitErr);
-        }
-
-        if (firestore && listingId) {
-          try {
-            const listingRef = firestore.collection("listings").doc(listingId);
-            const listingDoc = await listingRef.get();
-            if (listingDoc.exists) {
-              const expiresAt = new Date();
-              expiresAt.setDate(expiresAt.getDate() + 30);
-              await listingRef.update({
-                status: "active",
-                updatedAt: FieldValue.serverTimestamp(),
-                expiresAt: Timestamp.fromDate(expiresAt)
-              });
-            }
-          } catch (serverDbErr) {
-            console.warn("Server-side demo update skipped:", serverDbErr);
-          }
-        }
-
-        return res.json({
-          status: true,
-          message: "Payment verified successfully (Sandbox Mode)",
-          data: {
-            status: "success",
-            reference,
-            amount: 150000,
-            currency: "KES",
-            metadata: { listingId }
-          }
-        });
-      }
-
-      const secretKey = process.env.PAYSTACK_SECRET_KEY;
-      const isLiveKey = Boolean(
-        secretKey && 
-        (secretKey.startsWith('sk_live_') || secretKey.startsWith('sk_test_')) &&
-        secretKey !== 'sk_live_your_live_secret_key' &&
-        secretKey !== 'your_secret_key'
-      );
-
-      if (!isLiveKey) {
-        return res.status(400).json({
-          error: "Paystack API key is not configured. Set PAYSTACK_SECRET_KEY in production to verify live transactions."
-        });
-      }
-
-      // Live/Real Paystack verification against Paystack official API
-      const response = await paystackService.verifyTransaction(reference);
-
-      // Activate listing immediately if verified successfully
-      if (response.status && response.data?.status === "success") {
-        if (!listingId) {
-          listingId = response.data.metadata?.listingId;
-        }
-
-        let firestore: any = null;
-        try {
-          firestore = getDb();
-        } catch (dbInitErr) {
-          console.warn("Firestore Admin not available on server:", dbInitErr);
-        }
-
-        if (firestore && listingId) {
-          try {
-            const listingRef = firestore.collection("listings").doc(listingId);
-            const listingDoc = await listingRef.get();
-
-            if (listingDoc.exists) {
-              const now = new Date();
-              const expiresAt = new Date();
-              expiresAt.setDate(now.getDate() + 30);
-
-              await listingRef.update({
-                status: "active",
-                updatedAt: FieldValue.serverTimestamp(),
-                expiresAt: Timestamp.fromDate(expiresAt)
-              });
-
-              await firestore.collection("payments").add({
-                listingId,
-                amount: (response.data.amount || 150000) / 100,
-                transactionId: response.data.reference || reference,
-                customerEmail: response.data.customer?.email,
-                status: "success",
-                createdAt: FieldValue.serverTimestamp(),
-              });
-
-              console.log(`Listing ${listingId} activated successfully via Paystack verification.`);
-            }
-          } catch (dbErr: any) {
-            console.warn("Server-side Firestore update skipped (Client-side frontend SDK will finalize activation):", dbErr?.message || dbErr);
-          }
-        }
-      }
-
-      res.json(response);
-    } catch (error: any) {
-      console.error("Paystack Verification Error:", error.message || error);
-      res.status(500).json({ error: error.message || "Failed to verify payment" });
-    }
-  });
-
-  // Paystack Webhook Callback with mandatory HMAC-SHA512 verification (No Bypass)
-  app.post("/api/paystack/webhook", async (req, res) => {
-    const signature = req.headers["x-paystack-signature"] as string;
-    
-    // Strict authentication: reject any request without signature
-    if (!signature) {
-      console.warn("[Security Alert] Blocked unauthenticated request to /api/paystack/webhook missing signature");
-      return res.status(401).json({ error: "Missing x-paystack-signature header" });
-    }
-
-    const secretKey = process.env.PAYSTACK_SECRET_KEY;
-    if (!secretKey) {
-      console.error("[Security Alert] PAYSTACK_SECRET_KEY not configured for webhook verification");
-      return res.status(503).json({ error: "Paystack secret key is not configured" });
-    }
-
-    const rawPayload = (req as any).rawBody || req.body;
-    const isValid = paystackService.verifyWebhookSignature(rawPayload, signature);
-    if (!isValid) {
-      console.warn("[Security Alert] Forged or invalid Paystack webhook signature rejected!");
-      return res.status(401).json({ error: "Invalid signature" });
-    }
-
-    const event = req.body;
-    console.log("Paystack Webhook Event Received & Verified Authenticity:", event?.event);
-
-    if (event?.event === "charge.success") {
-      const { metadata, amount, reference, customer } = event.data || {};
-      const listingId = metadata?.listingId;
-
-      if (listingId) {
-        const firestore = getDb();
-        if (!firestore) {
-           console.warn("Firestore Admin not initialized for webhook; client side verification will handle database updates.");
-           return res.json({ status: "ok", message: "Admin DB not configured on server" });
-        }
-
-        try {
-          const listingRef = firestore.collection("listings").doc(listingId);
-          const listingDoc = await listingRef.get();
-
-          if (listingDoc.exists) {
-            const now = new Date();
-            const expiresAt = new Date();
-            expiresAt.setDate(now.getDate() + 30);
-
-            await listingRef.update({
-              status: "active",
-              updatedAt: FieldValue.serverTimestamp(),
-              expiresAt: Timestamp.fromDate(expiresAt)
-            });
-
-            // Record payment
-            await firestore.collection("payments").add({
-              listingId,
-              amount: (amount || 0) / 100,
-              transactionId: reference,
-              customerEmail: customer?.email,
-              status: "success",
-              createdAt: FieldValue.serverTimestamp(),
-            });
-
-            console.log(`Listing ${listingId} activated successfully via Paystack webhook.`);
-          }
-        } catch (error) {
-          console.error("Error processing Paystack webhook:", error);
-        }
-      }
-    }
-
-    res.json({ status: "ok" });
-  });
+  // Paystack Payment & Configuration Endpoints
+  app.get("/api/payment/config", configHandler);
+  app.post("/api/payment/initiate", initiatePaymentHandler);
+  app.get("/api/payment/verify/:reference", verifyPaymentHandler);
+  app.get("/api/payment/verify", verifyPaymentHandler);
+  app.post("/api/paystack/webhook", webhookHandler);
 
   // Automated Expiry Check (Protected against unauthorized public execution)
   app.get("/api/admin/check-expiry", async (req, res) => {
@@ -403,7 +67,7 @@ async function startServer() {
       return res.status(403).json({ error: "Forbidden: Unauthorized administrative endpoint access" });
     }
 
-    const firestore = getDb();
+    const firestore = getAdminDb();
     if (!firestore) return res.json({ message: "Firebase Admin DB not configured on server", expiredCount: 0 });
 
     try {
