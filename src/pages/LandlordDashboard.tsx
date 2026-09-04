@@ -23,10 +23,13 @@ import {
   X,
   RotateCcw,
   Building2,
-  Award
+  Award,
+  ChevronLeft,
+  ChevronRight,
+  ExternalLink
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import ManualPaymentModal from '../components/ManualPaymentModal';
 import RentalIncomeTrendsChart from '../components/RentalIncomeTrendsChart';
 import LandlordRegistry from '../components/LandlordRegistry';
@@ -53,6 +56,17 @@ const LandlordDashboard: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const itemsPerPage = 5;
+
+  // Active Paystack modal state (opens in new tab and provides direct retry/verify actions)
+  const [activePaystackModal, setActivePaystackModal] = useState<{
+    listing: any;
+    authUrl: string;
+    reference: string;
+  } | null>(null);
+
   // Manual payment modal state
   const [manualModalListing, setManualModalListing] = useState<any | null>(null);
 
@@ -66,6 +80,11 @@ const LandlordDashboard: React.FC = () => {
       verifyPaystackPayment(reference);
     }
   }, [profile]);
+
+  // Reset page when filter or search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [statusFilter, searchQuery]);
 
   // Factual real-time calculations from verified landlord listings
   const activeCount = useMemo(() => {
@@ -163,8 +182,24 @@ const LandlordDashboard: React.FC = () => {
       });
       
       if (response.data.data?.authorization_url) {
-        // Redirect to Paystack checkout
-        window.location.href = response.data.data.authorization_url;
+        const authUrl = response.data.data.authorization_url;
+        const ref = response.data.data.reference;
+        const targetListing = listings.find(l => l.id === listingId);
+
+        setActivePaystackModal({
+          listing: targetListing || { id: listingId, title: 'Property Listing' },
+          authUrl,
+          reference: ref
+        });
+
+        // Open in a new tab to avoid iframe/sandbox embedding restrictions
+        const newWin = window.open(authUrl, '_blank');
+        if (!newWin) {
+          setMessage({
+            type: 'success',
+            text: 'Paystack checkout session created. Please use the checkout dialog to complete payment.'
+          });
+        }
       } else {
         setMessage({ type: 'error', text: 'Failed to generate Paystack checkout link. Please verify your Paystack credentials.' });
       }
@@ -193,6 +228,37 @@ const LandlordDashboard: React.FC = () => {
       setLoading(false);
     }
   };
+
+  const filteredListings = useMemo(() => {
+    return listings.filter(l => {
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        const matchTitle = l.title?.toLowerCase().includes(q);
+        const matchLoc = l.location?.toLowerCase().includes(q);
+        if (!matchTitle && !matchLoc) return false;
+      }
+      if (statusFilter === 'active') {
+        const isExpired = l.expiresAt ? new Date(l.expiresAt).getTime() < Date.now() : false;
+        return l.status === 'active' && !isExpired;
+      }
+      if (statusFilter === 'pending_payment') {
+        return l.status === 'pending' || (!l.status && !l.paymentStatus);
+      }
+      if (statusFilter === 'pending_verification') {
+        return l.paymentStatus === 'pending_manual_verification';
+      }
+      if (statusFilter === 'expired') {
+        return l.expiresAt ? new Date(l.expiresAt).getTime() < Date.now() : false;
+      }
+      return true;
+    });
+  }, [listings, searchQuery, statusFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredListings.length / itemsPerPage));
+  const paginatedListings = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredListings.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredListings, currentPage]);
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -501,28 +567,7 @@ const LandlordDashboard: React.FC = () => {
                                 </div>
                               </td>
                             </tr>
-                          ) : listings.filter(l => {
-                            if (searchQuery.trim()) {
-                              const q = searchQuery.toLowerCase();
-                              const matchTitle = l.title?.toLowerCase().includes(q);
-                              const matchLoc = l.location?.toLowerCase().includes(q);
-                              if (!matchTitle && !matchLoc) return false;
-                            }
-                            if (statusFilter === 'active') {
-                              const isExpired = l.expiresAt ? new Date(l.expiresAt).getTime() < Date.now() : false;
-                              return l.status === 'active' && !isExpired;
-                            }
-                            if (statusFilter === 'pending_payment') {
-                              return l.status === 'pending' || (!l.status && !l.paymentStatus);
-                            }
-                            if (statusFilter === 'pending_verification') {
-                              return l.paymentStatus === 'pending_manual_verification';
-                            }
-                            if (statusFilter === 'expired') {
-                              return l.expiresAt ? new Date(l.expiresAt).getTime() < Date.now() : false;
-                            }
-                            return true;
-                          }).length === 0 ? (
+                          ) : filteredListings.length === 0 ? (
                             <tr>
                               <td colSpan={4} className="px-8 py-16 text-center">
                                 <p className="text-slate-900 font-black text-base">No listings match your filter criteria.</p>
@@ -534,28 +579,7 @@ const LandlordDashboard: React.FC = () => {
                                 </button>
                               </td>
                             </tr>
-                          ) : listings.filter(l => {
-                            if (searchQuery.trim()) {
-                              const q = searchQuery.toLowerCase();
-                              const matchTitle = l.title?.toLowerCase().includes(q);
-                              const matchLoc = l.location?.toLowerCase().includes(q);
-                              if (!matchTitle && !matchLoc) return false;
-                            }
-                            if (statusFilter === 'active') {
-                              const isExpired = l.expiresAt ? new Date(l.expiresAt).getTime() < Date.now() : false;
-                              return l.status === 'active' && !isExpired;
-                            }
-                            if (statusFilter === 'pending_payment') {
-                              return l.status === 'pending' || (!l.status && !l.paymentStatus);
-                            }
-                            if (statusFilter === 'pending_verification') {
-                              return l.paymentStatus === 'pending_manual_verification';
-                            }
-                            if (statusFilter === 'expired') {
-                              return l.expiresAt ? new Date(l.expiresAt).getTime() < Date.now() : false;
-                            }
-                            return true;
-                          }).map(listing => {
+                          ) : paginatedListings.map(listing => {
                             const isExpired = listing.expiresAt ? new Date(listing.expiresAt).getTime() < Date.now() : false;
                             const daysLeft = listing.expiresAt 
                               ? Math.max(0, Math.ceil((new Date(listing.expiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
@@ -690,6 +714,56 @@ const LandlordDashboard: React.FC = () => {
                         </tbody>
                       </table>
                     </div>
+
+                    {/* Table Pagination Bar with Previous and Next Page */}
+                    {filteredListings.length > 0 && (
+                      <div className="px-8 py-4 border-t border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row items-center justify-between gap-4">
+                        <div className="text-xs font-bold text-slate-500">
+                          Showing <span className="text-slate-900 font-black">{(currentPage - 1) * itemsPerPage + 1}</span> to{' '}
+                          <span className="text-slate-900 font-black">{Math.min(currentPage * itemsPerPage, filteredListings.length)}</span> of{' '}
+                          <span className="text-slate-900 font-black">{filteredListings.length}</span> properties
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                            disabled={currentPage === 1}
+                            className="px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider bg-white border border-slate-200 text-slate-700 hover:bg-slate-100 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5 shadow-sm"
+                          >
+                            <ChevronLeft className="w-3.5 h-3.5" />
+                            Previous Page
+                          </button>
+
+                          <div className="flex items-center gap-1">
+                            {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                              <button
+                                key={page}
+                                type="button"
+                                onClick={() => setCurrentPage(page)}
+                                className={`w-8 h-8 rounded-xl text-xs font-black transition-all ${
+                                  currentPage === page
+                                    ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20'
+                                    : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'
+                                }`}
+                              >
+                                {page}
+                              </button>
+                            ))}
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                            disabled={currentPage === totalPages}
+                            className="px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider bg-white border border-slate-200 text-slate-700 hover:bg-slate-100 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5 shadow-sm"
+                          >
+                            Next Page
+                            <ChevronRight className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </>
@@ -697,6 +771,72 @@ const LandlordDashboard: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Interactive Paystack Modal in case popups are blocked or user needs to verify */}
+      <AnimatePresence>
+        {activePaystackModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl border border-slate-100 relative"
+            >
+              <button
+                type="button"
+                onClick={() => setActivePaystackModal(null)}
+                className="absolute top-5 right-5 w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 flex items-center justify-center"
+              >
+                <X className="w-4 h-4" />
+              </button>
+
+              <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mb-4">
+                <CreditCard className="w-6 h-6" />
+              </div>
+
+              <h3 className="text-xl font-black text-slate-900 tracking-tight mb-2">
+                Paystack Checkout Active
+              </h3>
+              <p className="text-xs text-slate-500 mb-6 leading-relaxed">
+                A secure checkout session has been initialized for <strong className="text-slate-900">{activePaystackModal.listing?.title}</strong>. Click below if your browser blocked the window or verify your payment when done.
+              </p>
+
+              <div className="space-y-3">
+                <a
+                  href={activePaystackModal.authUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full py-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20 transition-all"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                  Open Paystack Checkout Tab
+                </a>
+
+                <button
+                  type="button"
+                  onClick={async () => {
+                    await verifyPaystackPayment(activePaystackModal.reference);
+                    setActivePaystackModal(null);
+                  }}
+                  disabled={verifyingRef === activePaystackModal.reference}
+                  className="w-full py-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 transition-all disabled:opacity-50"
+                >
+                  {verifyingRef === activePaystackModal.reference ? (
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <CheckCircle className="w-4 h-4" />
+                  )}
+                  I Finished Payment (Verify Now)
+                </button>
+              </div>
+
+              <p className="text-[10px] text-center text-slate-400 mt-4">
+                Transaction Reference: <span className="font-mono font-bold text-slate-600">{activePaystackModal.reference}</span>
+              </p>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Manual Payment Verification Modal */}
       <ManualPaymentModal
