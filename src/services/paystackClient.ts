@@ -1,22 +1,31 @@
 /// <reference types="vite/client" />
 import axios from 'axios';
 
+export interface PaystackPopHandler {
+  openIframe: () => void;
+}
+
+export interface PaystackPopSetupOptions {
+  key: string;
+  email: string;
+  amount: number; // In subunits (e.g. KES 1,500 = 150000)
+  currency?: string;
+  ref?: string;
+  metadata?: Record<string, any>;
+  callback: (response: { reference: string; status?: string; message?: string; trxref?: string }) => void;
+  onClose: () => void;
+}
+
+export interface PaystackPopSDK {
+  setup?: (options: PaystackPopSetupOptions) => PaystackPopHandler | undefined;
+  newTransaction?: (options: any) => void;
+  isInitialized?: boolean;
+  initialize?: (options?: any) => void;
+}
+
 declare global {
   interface Window {
-    PaystackPop?: {
-      setup: (options: {
-        key: string;
-        email: string;
-        amount: number; // In subunits (e.g. KES 1,500 = 150000)
-        currency?: string;
-        ref?: string;
-        metadata?: Record<string, any>;
-        callback: (response: { reference: string; status?: string; message?: string; trxref?: string }) => void;
-        onClose: () => void;
-      }) => {
-        openIframe: () => void;
-      };
-    };
+    PaystackPop?: PaystackPopSDK;
   }
 }
 
@@ -34,8 +43,49 @@ export interface ScriptLoadResult {
   errorMessage?: string;
 }
 
+export interface PopupFailureDetails {
+  reason: string;
+  error?: any;
+  context?: {
+    publicKeyProvided?: boolean;
+    publicKeyPrefix?: string;
+    scriptLoaded?: boolean;
+    scriptBlocked?: boolean;
+    sdkAvailableOnWindow?: boolean;
+    emailProvided?: boolean;
+    amount?: number;
+  };
+}
+
 let cachedConfig: PaystackConfig | null = null;
 let scriptLoadPromise: Promise<ScriptLoadResult> | null = null;
+
+/**
+ * Safely accesses the Paystack SDK on the window object after script execution.
+ */
+export function getPaystackSDK(): PaystackPopSDK | null {
+  if (typeof window === 'undefined') return null;
+  const sdk = window.PaystackPop || (window as any)['PaystackPop'] || (window as any)['Paystack'];
+  if (sdk && (typeof sdk.setup === 'function' || typeof sdk.newTransaction === 'function')) {
+    return sdk;
+  }
+  return null;
+}
+
+/**
+ * Error handler that logs exactly why the Paystack popup failed to open
+ */
+export function logPaystackPopupFailure(details: PopupFailureDetails): void {
+  console.error(
+    `[PaystackPopup Error] Popup failed to open: ${details.reason}`,
+    {
+      timestamp: new Date().toISOString(),
+      reason: details.reason,
+      error: details.error,
+      context: details.context
+    }
+  );
+}
 
 /**
  * Retrieve Paystack configuration from server or environment
@@ -77,15 +127,16 @@ export async function getPaystackConfig(): Promise<PaystackConfig> {
 }
 
 /**
- * Check if the external Paystack inline.js script is loaded or blocked
+ * Check if the external Paystack inline.js script is loaded and verify the window object
  */
 export async function ensurePaystackScriptLoaded(): Promise<ScriptLoadResult> {
   if (typeof window === 'undefined') {
-    return { loaded: false, blocked: false };
+    return { loaded: false, blocked: false, errorMessage: 'Non-browser environment' };
   }
 
-  // Already loaded and available on window
-  if (window.PaystackPop && typeof window.PaystackPop.setup === 'function') {
+  // Check if Paystack SDK is already active on window
+  const existingSDK = getPaystackSDK();
+  if (existingSDK) {
     return { loaded: true, blocked: false };
   }
 
@@ -94,19 +145,19 @@ export async function ensurePaystackScriptLoaded(): Promise<ScriptLoadResult> {
   }
 
   scriptLoadPromise = new Promise<ScriptLoadResult>((resolve) => {
-    // Check if script tag is already in DOM
     let script = document.querySelector('script[src*="js.paystack.co"]') as HTMLScriptElement | null;
     
     const timeoutId = setTimeout(() => {
-      // If after 6 seconds window.PaystackPop is still missing, it was likely blocked by ad-blocker or CSP
-      if (window.PaystackPop && typeof window.PaystackPop.setup === 'function') {
+      const sdk = getPaystackSDK();
+      if (sdk) {
         resolve({ loaded: true, blocked: false });
       } else {
-        console.warn('[PaystackClient] Paystack inline.js load timed out. External script may be blocked by adblocker, CSP, or sandbox.');
+        const errorMsg = 'Paystack checkout script (https://js.paystack.co/v1/inline.js) timed out after 6s. External script may be blocked by adblocker, CSP, or iframe sandbox.';
+        console.warn('[PaystackClient]', errorMsg);
         resolve({
           loaded: false,
           blocked: true,
-          errorMessage: 'Paystack checkout script (https://js.paystack.co/v1/inline.js) timed out. Ad-blockers or strict browser security settings may be blocking external payment scripts.'
+          errorMessage: errorMsg
         });
       }
     }, 6000);
@@ -121,25 +172,37 @@ export async function ensurePaystackScriptLoaded(): Promise<ScriptLoadResult> {
 
     script.onload = () => {
       clearTimeout(timeoutId);
-      if (window.PaystackPop && typeof window.PaystackPop.setup === 'function') {
-        resolve({ loaded: true, blocked: false });
-      } else {
-        // Script loaded but object not available
-        resolve({
-          loaded: false,
-          blocked: true,
-          errorMessage: 'Paystack script loaded but PaystackPop was not initialized in window.'
-        });
-      }
+      // Wait for SDK to attach to window object
+      let checkAttempts = 0;
+      const verifySDK = () => {
+        const sdk = getPaystackSDK();
+        if (sdk) {
+          console.log('[PaystackClient] Paystack SDK successfully accessed on window object');
+          resolve({ loaded: true, blocked: false });
+        } else if (checkAttempts < 6) {
+          checkAttempts++;
+          setTimeout(verifySDK, 50);
+        } else {
+          const errorMsg = 'Paystack script tag loaded, but Paystack SDK (window.PaystackPop) was not found on window object.';
+          console.error('[PaystackClient]', errorMsg);
+          resolve({
+            loaded: false,
+            blocked: true,
+            errorMessage: errorMsg
+          });
+        }
+      };
+      verifySDK();
     };
 
     script.onerror = (e) => {
       clearTimeout(timeoutId);
-      console.error('[PaystackClient] Failed to load Paystack script:', e);
+      const errorMsg = 'Network or browser security policy blocked loading https://js.paystack.co/v1/inline.js.';
+      console.error('[PaystackClient] Failed to load Paystack script:', e, errorMsg);
       resolve({
         loaded: false,
         blocked: true,
-        errorMessage: 'Network or browser security blocked loading https://js.paystack.co/v1/inline.js. Please check your ad-blocker or privacy shields.'
+        errorMessage: errorMsg
       });
     };
   });
@@ -148,6 +211,7 @@ export async function ensurePaystackScriptLoaded(): Promise<ScriptLoadResult> {
 }
 
 export interface InitiateCheckoutParams {
+  publicKey?: string; // Passed from component level
   email: string;
   amount: number; // in KES (e.g. 1500)
   listingId: string;
@@ -155,21 +219,38 @@ export interface InitiateCheckoutParams {
   onSuccess: (reference: string) => void;
   onClose?: () => void;
   onFallbackRedirect?: (authUrl: string, reference: string) => void;
+  onPopupError?: (error: PopupFailureDetails) => void;
+}
+
+export interface LaunchCheckoutResult {
+  mode: 'popup' | 'redirect' | 'sandbox';
+  reference: string;
+  authUrl?: string;
+  scriptBlocked?: boolean;
+  popupFailureReason?: string;
 }
 
 /**
  * Initializes and triggers Paystack checkout using Inline Popup when available,
  * with graceful fallback to secure new-window redirect if popup or external script is blocked.
  */
-export async function launchPaystackCheckout(params: InitiateCheckoutParams): Promise<{
-  mode: 'popup' | 'redirect' | 'sandbox';
-  reference: string;
-  authUrl?: string;
-  scriptBlocked?: boolean;
-}> {
-  const { email, amount, listingId, listingTitle, onSuccess, onClose, onFallbackRedirect } = params;
+export async function launchPaystackCheckout(params: InitiateCheckoutParams): Promise<LaunchCheckoutResult> {
+  const { 
+    publicKey: componentPublicKey, 
+    email, 
+    amount, 
+    listingId, 
+    listingTitle, 
+    onSuccess, 
+    onClose, 
+    onFallbackRedirect,
+    onPopupError 
+  } = params;
 
-  // 1. Initiate on server to get verified reference, authorization_url, and server-configured public key
+  // 1. Prioritize public key passed from component level
+  let resolvedPublicKey = componentPublicKey?.trim() || '';
+
+  // 2. Initiate session on server to obtain verified reference, authorization_url, and server-configured key
   const initRes = await axios.post('/api/payment/initiate', {
     email: email.trim(),
     amount,
@@ -181,6 +262,20 @@ export async function launchPaystackCheckout(params: InitiateCheckoutParams): Pr
   const isSandbox = Boolean(initData.isSandbox);
   const reference = initData.data?.reference || `pstk_${listingId}_${Date.now()}`;
   const authUrl = initData.data?.authorization_url;
+
+  // If component did not pass public key, use server initiation response or probe config
+  if (!resolvedPublicKey) {
+    if (initData.publicKey) {
+      resolvedPublicKey = initData.publicKey;
+      console.log('[PaystackClient] Using public key returned from payment initiation endpoint');
+    } else {
+      const config = await getPaystackConfig();
+      resolvedPublicKey = config.publicKey;
+      console.log('[PaystackClient] Resolved public key from config fallback');
+    }
+  } else {
+    console.log(`[PaystackClient] Using public key passed from component level (${resolvedPublicKey.slice(0, 10)}...)`);
+  }
 
   // If in sandbox mode, simulate popup completion or redirect
   if (isSandbox) {
@@ -194,28 +289,44 @@ export async function launchPaystackCheckout(params: InitiateCheckoutParams): Pr
     };
   }
 
-  // 2. Check public key configuration
-  const config = await getPaystackConfig();
-  const publicKey = initData.publicKey || config.publicKey;
-
-  // 3. Ensure inline script is loaded and not blocked
+  // 3. Ensure inline script is loaded and probe window object
   const scriptStatus = await ensurePaystackScriptLoaded();
+  const sdk = getPaystackSDK();
 
-  // 4. Try Paystack Popup if script is loaded, public key is present, and PaystackPop is defined
-  const canUsePopup = 
-    scriptStatus.loaded && 
-    !scriptStatus.blocked && 
-    window.PaystackPop && 
-    typeof window.PaystackPop.setup === 'function' &&
-    Boolean(publicKey && publicKey.startsWith('pk_'));
+  const context = {
+    publicKeyProvided: Boolean(componentPublicKey),
+    publicKeyPrefix: resolvedPublicKey ? resolvedPublicKey.slice(0, 7) : 'missing',
+    scriptLoaded: scriptStatus.loaded,
+    scriptBlocked: scriptStatus.blocked,
+    sdkAvailableOnWindow: Boolean(sdk && typeof sdk.setup === 'function'),
+    emailProvided: Boolean(email.trim()),
+    amount
+  };
 
-  if (canUsePopup && window.PaystackPop) {
+  let failureReason: string | null = null;
+  let caughtError: any = null;
+
+  // Validate prerequisites before attempting popup
+  if (!scriptStatus.loaded || scriptStatus.blocked) {
+    failureReason = scriptStatus.errorMessage || 'Paystack script was not loaded or blocked by browser/ad-blocker.';
+  } else if (!sdk || typeof sdk.setup !== 'function') {
+    failureReason = 'Paystack SDK (window.PaystackPop) is not properly accessible on the window object.';
+  } else if (!resolvedPublicKey || !resolvedPublicKey.startsWith('pk_')) {
+    failureReason = `Invalid or missing Paystack public key: "${resolvedPublicKey || 'empty'}". Expected a key starting with "pk_live_" or "pk_test_".`;
+  } else if (!email.trim()) {
+    failureReason = 'Customer email address is missing or empty.';
+  } else if (!amount || amount <= 0) {
+    failureReason = `Invalid payment amount: ${amount}. Amount must be greater than zero.`;
+  }
+
+  // 4. Try Paystack Popup if all validations pass
+  if (!failureReason && sdk && typeof sdk.setup === 'function') {
     try {
-      // Note: Paystack requires amount in lowest currency denomination (Subunits: Multiply KES by 100)
+      // Paystack requires amount in lowest currency denomination (Subunits: Multiply KES by 100)
       const amountInSubunits = Math.round(amount * 100);
 
-      const handler = window.PaystackPop.setup({
-        key: publicKey,
+      const handler = sdk.setup({
+        key: resolvedPublicKey,
         email: email.trim(),
         amount: amountInSubunits,
         currency: 'KES',
@@ -242,20 +353,37 @@ export async function launchPaystackCheckout(params: InitiateCheckoutParams): Pr
         }
       });
 
-      handler.openIframe();
+      if (!handler || typeof handler.openIframe !== 'function') {
+        failureReason = 'PaystackPop.setup() failed to return a valid handler with openIframe(). Parameters may have failed Paystack client validation.';
+      } else {
+        handler.openIframe();
 
-      return {
-        mode: 'popup',
-        reference,
-        authUrl
-      };
-    } catch (popupErr) {
-      console.warn('[PaystackClient] Error triggering Paystack popup, falling back to redirect:', popupErr);
+        return {
+          mode: 'popup',
+          reference,
+          authUrl
+        };
+      }
+    } catch (popupErr: any) {
+      failureReason = `Exception thrown while initializing or opening Paystack popup iframe: ${popupErr?.message || popupErr}`;
+      caughtError = popupErr;
     }
   }
 
+  // If popup could not open, log detailed failure reason
+  const failureDetails: PopupFailureDetails = {
+    reason: failureReason || 'Unknown failure preventing Paystack popup modal from opening',
+    error: caughtError,
+    context
+  };
+
+  logPaystackPopupFailure(failureDetails);
+  if (onPopupError) {
+    onPopupError(failureDetails);
+  }
+
   // 5. Fallback: If popup script was blocked, failed, or inside a restricted iframe, use the direct authorization_url
-  console.log('[PaystackClient] Using redirect/new-tab fallback. Script blocked:', scriptStatus.blocked);
+  console.log('[PaystackClient] Using redirect/new-tab fallback. Reason:', failureDetails.reason);
   
   if (onFallbackRedirect && authUrl) {
     onFallbackRedirect(authUrl, reference);
@@ -267,6 +395,7 @@ export async function launchPaystackCheckout(params: InitiateCheckoutParams): Pr
     mode: 'redirect',
     reference,
     authUrl,
-    scriptBlocked: scriptStatus.blocked
+    scriptBlocked: scriptStatus.blocked,
+    popupFailureReason: failureReason || undefined
   };
 }

@@ -338,7 +338,11 @@ const CreateListingPage: React.FC = () => {
     try {
       const listingId = await saveListingRecord('pending');
 
+      // Pass public key directly from component state instead of relying on window variables
+      const componentPublicKey = paystackConfig?.publicKey || (import.meta.env.VITE_PAYSTACK_PUBLIC_KEY as string) || '';
+
       const checkoutResult = await launchPaystackCheckout({
+        publicKey: componentPublicKey,
         email: landlordEmail.trim() || profile?.email || 'landlord@example.com',
         amount: 1500, // Fixed KES 1,500 activation fee
         listingId,
@@ -346,6 +350,9 @@ const CreateListingPage: React.FC = () => {
         onSuccess: async (verifiedReference) => {
           setPaystackReference(verifiedReference);
           await handleVerifyPayment(verifiedReference, listingId);
+        },
+        onPopupError: (failure) => {
+          console.warn('[CreateListingPage] Paystack popup failed to open:', failure.reason, failure.context);
         },
         onFallbackRedirect: (authUrl, ref) => {
           setPaystackAuthUrl(authUrl);

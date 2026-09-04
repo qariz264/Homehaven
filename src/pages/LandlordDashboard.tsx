@@ -52,6 +52,7 @@ const LandlordDashboard: React.FC = () => {
   const [paymentLoading, setPaymentLoading] = useState<string | null>(null);
   const [verifyingRef, setVerifyingRef] = useState<string | null>(null);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+  const [paystackConfig, setPaystackConfig] = useState<PaystackConfig | null>(null);
   
   // Listing filter states inside dashboard
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -73,6 +74,7 @@ const LandlordDashboard: React.FC = () => {
 
   useEffect(() => {
     fetchListings();
+    getPaystackConfig().then(cfg => setPaystackConfig(cfg)).catch(() => {});
 
     // Check for Paystack payment callback reference in URL params
     const params = new URLSearchParams(window.location.search);
@@ -175,13 +177,20 @@ const LandlordDashboard: React.FC = () => {
     setMessage(null);
     try {
       const targetListing = listings.find(l => l.id === listingId);
+      // Pass public key directly from component level
+      const componentPublicKey = paystackConfig?.publicKey || (import.meta.env.VITE_PAYSTACK_PUBLIC_KEY as string) || '';
+
       const checkoutResult = await launchPaystackCheckout({
+        publicKey: componentPublicKey,
         email: profile.email,
         amount: 1500, // Fixed package price KES 1,500
         listingId,
         listingTitle: targetListing?.title || 'Property Listing',
         onSuccess: async (verifiedReference) => {
           await verifyPaystackPayment(verifiedReference, listingId);
+        },
+        onPopupError: (failure) => {
+          console.warn('[LandlordDashboard] Paystack popup failed to open:', failure.reason, failure.context);
         },
         onFallbackRedirect: (authUrl, ref) => {
           setActivePaystackModal({
