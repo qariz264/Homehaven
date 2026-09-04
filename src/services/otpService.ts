@@ -1,5 +1,6 @@
 import nodemailer from 'nodemailer';
 import axios from 'axios';
+import { sendOtpWithResend, isResendConfigured } from './resendService.js';
 
 interface StoredOtp {
   code: string;
@@ -114,34 +115,21 @@ export async function sendOtpEmail(email: string, name?: string): Promise<{
     </html>
   `;
 
-  // 1. Try Resend API if RESEND_API_KEY is configured
-  const resendApiKey = process.env.RESEND_API_KEY;
-  if (resendApiKey && resendApiKey.startsWith('re_')) {
-    try {
-      const fromEmail = process.env.SMTP_FROM || 'HomeHaven <onboarding@resend.dev>';
-      await axios.post(
-        'https://api.resend.com/emails',
-        {
-          from: fromEmail,
-          to: [normalizedEmail],
-          subject,
-          html: htmlContent
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${resendApiKey}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
+  // 1. Try Resend SDK if configured
+  if (isResendConfigured()) {
+    const resendResult = await sendOtpWithResend({
+      email: normalizedEmail,
+      otp: code,
+      name
+    });
 
-      console.log(`[OTP] Sent verification email via Resend to ${normalizedEmail}`);
+    if (resendResult.success) {
       return {
         success: true,
         message: `Verification code sent to ${normalizedEmail}`
       };
-    } catch (err: any) {
-      console.warn('[OTP] Resend delivery failed, falling back to SMTP/Sandbox:', err?.response?.data || err.message);
+    } else {
+      console.warn('[OTP] Resend delivery failed, falling back to SMTP/Sandbox:', resendResult.error);
     }
   }
 

@@ -8,7 +8,9 @@ import axios from "axios";
 import { initializeApp, cert, getApps } from "firebase-admin/app";
 import { getFirestore, FieldValue, Timestamp } from "firebase-admin/firestore";
 import { paystackService } from "./src/services/paystackService.js";
-import { sendOtpEmail, verifySubmittedOtp } from "./src/services/otpService.js";
+import sendOtpHandler from "./api/auth/send-otp.js";
+import verifyOtpHandler from "./api/auth/verify-otp.js";
+import resendOtpHandler from "./api/auth/resend-otp.js";
 
 dotenv.config();
 
@@ -95,49 +97,10 @@ async function startServer() {
 
   // API Routes
   
-  // Send OTP for email verification
-  app.post("/api/auth/send-otp", async (req, res) => {
-    const { email, name } = req.body;
-
-    if (!email || typeof email !== "string" || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-      return res.status(400).json({ error: "A valid email address is required" });
-    }
-
-    try {
-      const result = await sendOtpEmail(email.trim(), typeof name === "string" ? name.trim() : undefined);
-      if (!result.success) {
-        return res.status(429).json({ error: result.message });
-      }
-      res.json(result);
-    } catch (err: any) {
-      console.error("Send OTP Error:", err);
-      res.status(500).json({ error: "Failed to send verification email. Please try again." });
-    }
-  });
-
-  // Verify OTP submitted by user
-  app.post("/api/auth/verify-otp", async (req, res) => {
-    const { email, otp } = req.body;
-
-    if (!email || typeof email !== "string") {
-      return res.status(400).json({ error: "Email address is required" });
-    }
-
-    if (!otp || typeof otp !== "string") {
-      return res.status(400).json({ error: "Verification code is required" });
-    }
-
-    try {
-      const result = verifySubmittedOtp(email.trim(), otp.trim());
-      if (!result.success) {
-        return res.status(400).json({ error: result.message });
-      }
-      res.json({ success: true, verified: true, message: result.message });
-    } catch (err: any) {
-      console.error("Verify OTP Error:", err);
-      res.status(500).json({ error: "Failed to verify code. Please try again." });
-    }
-  });
+  // Auth OTP Verification Endpoints (api/auth/send-otp.ts & api/auth/verify-otp.ts)
+  app.post("/api/auth/send-otp", sendOtpHandler);
+  app.post("/api/auth/verify-otp", verifyOtpHandler);
+  app.post("/api/auth/resend-otp", resendOtpHandler);
 
   // Paystack Payment Initiation with strict input validation
   app.post("/api/payment/initiate", async (req, res) => {
