@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import nodemailer from 'nodemailer';
 import axios from 'axios';
 import { sendOtpWithResend, isResendConfigured } from './resendService.js';
@@ -10,8 +11,79 @@ interface StoredOtp {
   name?: string;
 }
 
-// In-memory OTP storage keyed by normalized email
+// In-memory OTP storage keyed by normalized email (for single-instance / local dev fallback)
 const otpStore = new Map<string, StoredOtp>();
+
+function getOtpSecret(): string {
+  return (
+    process.env.OTP_SECRET ||
+    process.env.RESEND_API_KEY ||
+    process.env.VITE_FIREBASE_API_KEY ||
+    'homehaven-kenya-secure-otp-auth-secret-key-2025'
+  );
+}
+
+/**
+ * Creates a cryptographically signed verification token containing the expiration timestamp and HMAC signature.
+ * This ensures verification works seamlessly across isolated Vercel Serverless Function instances.
+ */
+export function createOtpSignature(email: string, code: string, expiresAt: number): string {
+  const secret = getOtpSecret();
+  const normalizedEmail = email.trim().toLowerCase();
+  const cleanedCode = code.trim().replace(/\s+/g, '');
+  const data = `${normalizedEmail}:${cleanedCode}:${expiresAt}`;
+  const hmac = crypto.createHmac('sha256', secret).update(data).digest('hex');
+  return `${expiresAt}.${hmac}`;
+}
+
+/**
+ * Validates the HMAC signature and timestamp of the verification token against the submitted code and email.
+ */
+export function verifyOtpSignature(
+  email: string,
+  submittedCode: string,
+  token: string
+): { valid: boolean; error?: string } {
+  if (!token || typeof token !== 'string') {
+    return { valid: false, error: 'Missing verification token.' };
+  }
+
+  const dotIndex = token.indexOf('.');
+  if (dotIndex === -1) {
+    return { valid: false, error: 'Invalid verification token structure.' };
+  }
+
+  const expiresAtStr = token.substring(0, dotIndex);
+  const sig = token.substring(dotIndex + 1);
+  const expiresAt = Number(expiresAtStr);
+
+  if (isNaN(expiresAt) || !expiresAt) {
+    return { valid: false, error: 'Invalid verification token timestamp.' };
+  }
+
+  if (Date.now() > expiresAt) {
+    return { valid: false, error: 'Verification code has expired. Please click Resend Code.' };
+  }
+
+  const secret = getOtpSecret();
+  const normalizedEmail = email.trim().toLowerCase();
+  const cleanedCode = submittedCode.trim().replace(/\s+/g, '');
+  const data = `${normalizedEmail}:${cleanedCode}:${expiresAt}`;
+  const expectedHmac = crypto.createHmac('sha256', secret).update(data).digest('hex');
+
+  try {
+    const sigBuf = Buffer.from(sig, 'hex');
+    const expBuf = Buffer.from(expectedHmac, 'hex');
+
+    if (sigBuf.length !== expBuf.length || !crypto.timingSafeEqual(sigBuf, expBuf)) {
+      return { valid: false, error: 'Invalid verification code. Please check the 6-digit code and try again.' };
+    }
+  } catch {
+    return { valid: false, error: 'Invalid verification code signature.' };
+  }
+
+  return { valid: true };
+}
 
 // Clean up expired OTPs periodically (every 5 minutes)
 setInterval(() => {
@@ -38,6 +110,7 @@ export async function sendOtpEmail(email: string, name?: string): Promise<{
   message: string;
   previewOtp?: string;
   isSandbox?: boolean;
+  verificationToken?: string;
 }> {
   const normalizedEmail = email.trim().toLowerCase();
   const now = Date.now();
@@ -54,6 +127,7 @@ export async function sendOtpEmail(email: string, name?: string): Promise<{
 
   const code = generateNumericOtp();
   const expiresAt = now + 10 * 60 * 1000; // 10 minutes
+  const verificationToken = createOtpSignature(normalizedEmail, code, expiresAt);
 
   otpStore.set(normalizedEmail, {
     code,
@@ -126,7 +200,8 @@ export async function sendOtpEmail(email: string, name?: string): Promise<{
     if (resendResult.success) {
       return {
         success: true,
-        message: `Verification code sent to ${normalizedEmail}`
+        message: `Verification code sent to ${normalizedEmail}`,
+        verificationToken
       };
     } else {
       console.warn('[OTP] Resend delivery failed, falling back to SMTP/Sandbox:', resendResult.error);
@@ -164,7 +239,8 @@ export async function sendOtpEmail(email: string, name?: string): Promise<{
       console.log(`[OTP] Sent verification email via SMTP to ${normalizedEmail}`);
       return {
         success: true,
-        message: `Verification code sent to ${normalizedEmail}`
+        message: `Verification code sent to ${normalizedEmail}`,
+        verificationToken
       };
     } catch (smtpErr: any) {
       console.warn('[OTP] SMTP transmission error:', smtpErr.message);
@@ -183,14 +259,20 @@ export async function sendOtpEmail(email: string, name?: string): Promise<{
     success: true,
     message: `Verification code sent to ${normalizedEmail}`,
     previewOtp: code,
+    verificationToken,
     isSandbox: true
   };
 }
 
 /**
  * Verify a submitted OTP code for an email.
+ * Supports cryptographic stateless tokens (for Vercel serverless functions) with in-memory fallback.
  */
-export function verifySubmittedOtp(email: string, submittedCode: string): {
+export function verifySubmittedOtp(
+  email: string,
+  submittedCode: string,
+  verificationToken?: string
+): {
   success: boolean;
   message: string;
 } {
@@ -204,11 +286,30 @@ export function verifySubmittedOtp(email: string, submittedCode: string): {
     };
   }
 
+  // 1. Primary for Vercel Serverless: Cryptographic verificationToken check
+  if (verificationToken && typeof verificationToken === 'string' && verificationToken.trim()) {
+    const tokenResult = verifyOtpSignature(normalizedEmail, cleanedCode, verificationToken.trim());
+    if (!tokenResult.valid) {
+      return {
+        success: false,
+        message: tokenResult.error || 'Invalid verification code. Please check the code sent to your email.'
+      };
+    }
+
+    // Successfully verified via cryptographic signature! Remove in-memory record if exists
+    otpStore.delete(normalizedEmail);
+    return {
+      success: true,
+      message: 'Email successfully verified!'
+    };
+  }
+
+  // 2. Fallback: In-memory store (for single-instance dev or requests without token)
   const record = otpStore.get(normalizedEmail);
   if (!record) {
     return {
       success: false,
-      message: 'No verification request found for this email. Please request a new code.'
+      message: 'No verification request found for this email. Please click "Resend Code" to receive a fresh verification code.'
     };
   }
 

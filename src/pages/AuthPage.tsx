@@ -21,6 +21,7 @@ const AuthPage: React.FC = () => {
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [isOtpStep, setIsOtpStep] = useState(false);
   const [previewOtp, setPreviewOtp] = useState<string | undefined>(undefined);
+  const [verificationToken, setVerificationToken] = useState<string | undefined>(undefined);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState('');
@@ -281,6 +282,9 @@ const AuthPage: React.FC = () => {
         }
 
         setPreviewOtp(data.previewOtp);
+        if (data.verificationToken) {
+          setVerificationToken(data.verificationToken);
+        }
         setIsOtpStep(true);
         setSuccessMsg(`We've sent a 6-digit verification code to ${email.trim()}.`);
       } catch (err: any) {
@@ -484,6 +488,7 @@ const AuthPage: React.FC = () => {
                 setSuccessMsg('');
               }}
               initialPreviewOtp={previewOtp}
+              initialVerificationToken={verificationToken}
             />
           ) : isForgotPassword ? (
             <form onSubmit={handleResetPassword} className="space-y-4">

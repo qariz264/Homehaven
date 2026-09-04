@@ -8,6 +8,7 @@ interface OtpVerificationStepProps {
   onVerifiedSuccess: () => Promise<void>;
   onBackToEdit: () => void;
   initialPreviewOtp?: string;
+  initialVerificationToken?: string;
 }
 
 export const OtpVerificationStep: React.FC<OtpVerificationStepProps> = ({
@@ -15,10 +16,12 @@ export const OtpVerificationStep: React.FC<OtpVerificationStepProps> = ({
   name,
   onVerifiedSuccess,
   onBackToEdit,
-  initialPreviewOtp
+  initialPreviewOtp,
+  initialVerificationToken
 }) => {
   const [digits, setDigits] = useState<string[]>(['', '', '', '', '', '']);
   const [previewOtp, setPreviewOtp] = useState<string | undefined>(initialPreviewOtp);
+  const [verificationToken, setVerificationToken] = useState<string | undefined>(initialVerificationToken);
   const [verifying, setVerifying] = useState(false);
   const [resending, setResending] = useState(false);
   const [error, setError] = useState('');
@@ -115,6 +118,9 @@ export const OtpVerificationStep: React.FC<OtpVerificationStepProps> = ({
       if (data.previewOtp) {
         setPreviewOtp(data.previewOtp);
       }
+      if (data.verificationToken) {
+        setVerificationToken(data.verificationToken);
+      }
       setDigits(['', '', '', '', '', '']);
       inputRefs.current[0]?.focus();
     } catch (err: any) {
@@ -140,7 +146,11 @@ export const OtpVerificationStep: React.FC<OtpVerificationStepProps> = ({
       const res = await fetch('/api/auth/verify-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, otp: otpCode })
+        body: JSON.stringify({
+          email,
+          otp: otpCode,
+          verificationToken
+        })
       });
 
       const data = await res.json();

@@ -6,7 +6,7 @@ import { verifySubmittedOtp } from '../../src/services/otpService.js';
  * Endpoint: POST /api/auth/verify-otp
  */
 export default async function verifyOtpHandler(req: Request, res: Response) {
-  const { email, otp } = req.body || {};
+  const { email, otp, verificationToken } = req.body || {};
 
   if (!email || typeof email !== 'string') {
     return res.status(400).json({ error: 'Email address is required' });
@@ -17,7 +17,8 @@ export default async function verifyOtpHandler(req: Request, res: Response) {
   }
 
   try {
-    const result = verifySubmittedOtp(email.trim(), otp.trim());
+    const token = typeof verificationToken === 'string' ? verificationToken.trim() : undefined;
+    const result = verifySubmittedOtp(email.trim(), otp.trim(), token);
     if (!result.success) {
       return res.status(400).json({ error: result.message });
     }
