@@ -6,9 +6,45 @@ import ReportFraudModal from '../components/ReportFraudModal';
 import LocationPermissionCard from '../components/LocationPermissionCard';
 import { KENYA_COUNTIES } from '../lib/counties';
 import { useSEO } from '../hooks/useSEO';
-import { Search, MapPin, SlidersHorizontal, ArrowRight, Building2, Users2, ShieldCheck, Zap, X, RotateCcw, DollarSign, Home as HomeIcon, Filter, Navigation, ShieldAlert, Crosshair } from 'lucide-react';
+import { Search, MapPin, SlidersHorizontal, ArrowRight, Building2, Users2, ShieldCheck, Zap, X, RotateCcw, DollarSign, Home as HomeIcon, Filter, Navigation, ShieldAlert, Crosshair, HelpCircle, ChevronDown, ChevronUp, Sparkles, CheckCircle2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Link, useLocation } from 'react-router-dom';
+
+const KENYA_RENTAL_FAQS = [
+  {
+    q: "How do I find verified houses and apartments for rent on HomeHaven?",
+    a: "Browse verified rental listings across all 47 counties in Kenya including Nairobi, Mombasa, Kiambu, and Nakuru. Filter by price, vacant units, or specific estates (such as Kilimani, Westlands, Roysambu, or Juja). You can review real photos, amenities, and contact verified landlords directly via WhatsApp or direct phone call."
+  },
+  {
+    q: "How does HomeHaven verify landlords and prevent rental scams?",
+    a: "Every landlord listing is activated through verified Kenyan M-Pesa payment records. In addition, tenants can submit anonymous reports directly to our Admin Security Operations team, who swiftly investigate and suspend scam or impersonator accounts."
+  },
+  {
+    q: "Are there middleman, broker, or viewing fees on HomeHaven?",
+    a: "No! HomeHaven connects tenants directly with verified property owners and building managers. You can view property details, examine exact vacant unit counts, and call or message the landlord without paying broker middleman fees."
+  },
+  {
+    q: "What types of rental properties are listed on HomeHaven Kenya?",
+    a: "HomeHaven lists all property types across Kenya: affordable student bedsitters, modern 1, 2, and 3-bedroom apartments, executive penthouses, family maisonettes, townhouses, and commercial spaces in Nairobi, Mombasa, Kisumu, Eldoret, Nakuru, and beyond."
+  },
+  {
+    q: "How can landlords list and activate their rental houses with M-Pesa?",
+    a: "Landlords can create an account, upload property details and high-resolution photos, and activate their listing within seconds using automated M-Pesa STK Push or Paybill receipt verification."
+  }
+];
+
+const POPULAR_SEARCHES = [
+  { label: "Nairobi Apartments", county: "Nairobi", query: "" },
+  { label: "Kilimani Rentals", county: "Nairobi", query: "Kilimani" },
+  { label: "Westlands Flats", county: "Nairobi", query: "Westlands" },
+  { label: "Roysambu Bedsitters", county: "Nairobi", query: "Roysambu" },
+  { label: "Mombasa Beach Houses", county: "Mombasa", query: "" },
+  { label: "Kiambu / Thika Road", county: "Kiambu", query: "" },
+  { label: "Juja Student Bedsitters", county: "Kiambu", query: "Juja" },
+  { label: "Nakuru Town Rentals", county: "Nakuru", query: "" },
+  { label: "Kisumu Lakeview", county: "Kisumu", query: "" },
+  { label: "Eldoret Town Flats", county: "Uasin Gishu", query: "" },
+];
 
 const HomePage: React.FC = () => {
   const location = useLocation();
@@ -17,6 +53,7 @@ const HomePage: React.FC = () => {
   const [showFraudModal, setShowFraudModal] = useState(false);
   const [showLocationCard, setShowLocationCard] = useState(false);
   const [detectedLocationInfo, setDetectedLocationInfo] = useState<string | null>(null);
+  const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
 
   // Search & Filter state
   const [selectedCounty, setSelectedCounty] = useState('');
@@ -36,7 +73,7 @@ const HomePage: React.FC = () => {
     }
   }, []);
 
-  // Dynamic SEO configuration for Home and County Searches
+  // Dynamic SEO configuration for Home and County Searches with Google Schema & FAQPage
   useSEO({
     title: selectedCounty 
       ? `Verified Houses & Apartments for Rent in ${selectedCounty} County | HomeHaven Kenya`
@@ -44,31 +81,59 @@ const HomePage: React.FC = () => {
     description: selectedCounty
       ? `Browse verified rental properties in ${selectedCounty} County, Kenya. Direct landlord contacts, transparent monthly rent, and real-time vacant unit counters.`
       : 'A premium real estate marketplace connecting landlords and tenants with real M-Pesa payment-activated listings across Nairobi, Mombasa, Kisumu, and all 47 counties in Kenya.',
-    keywords: 'houses for rent Kenya, Nairobi apartments, real estate Kenya, bedsitters Nairobi, Kilimani rentals, Westlands apartments, rent houses Mombasa, verified landlord listings, Kenyan real estate',
-    canonicalUrl: selectedCounty ? `https://homehaven.co.ke/?county=${encodeURIComponent(selectedCounty)}` : 'https://homehaven.co.ke/',
+    keywords: 'HomeHaven, HomeHaven Kenya, houses for rent Kenya, Nairobi apartments, real estate Kenya, bedsitters Nairobi, Kilimani rentals, Westlands apartments, rent houses Mombasa, verified landlord listings, Kenyan real estate, Roysambu bedsitters, Juja rentals, Kiambu houses',
+    canonicalUrl: selectedCounty ? `https://myhomehaven.co.ke/?county=${encodeURIComponent(selectedCounty)}` : 'https://myhomehaven.co.ke/',
     schema: {
       '@context': 'https://schema.org',
       '@graph': [
         {
           '@type': 'WebSite',
+          '@id': 'https://myhomehaven.co.ke/#website',
           'name': 'HomeHaven',
-          'url': 'https://homehaven.co.ke',
+          'alternateName': ['Home Haven', 'HomeHaven Kenya', 'Home Haven Kenya', 'HomeHaven Real Estate'],
+          'url': 'https://myhomehaven.co.ke',
           'potentialAction': {
             '@type': 'SearchAction',
-            'target': 'https://homehaven.co.ke/?search={search_term_string}',
+            'target': 'https://myhomehaven.co.ke/?search={search_term_string}',
             'query-input': 'required name=search_term_string'
-          }
+          },
+          'inLanguage': 'en-KE'
         },
         {
           '@type': 'RealEstateAgent',
+          '@id': 'https://myhomehaven.co.ke/#organization',
           'name': 'HomeHaven Kenya',
+          'alternateName': ['HomeHaven', 'Home Haven Kenya'],
+          'url': 'https://myhomehaven.co.ke',
           'description': "Kenya's premier verified real estate portal for rental houses and apartments.",
           'address': {
             '@type': 'PostalAddress',
             'addressLocality': 'Nairobi',
             'addressRegion': selectedCounty || 'Nairobi County',
             'addressCountry': 'KE'
-          }
+          },
+          'areaServed': {
+            '@type': 'Country',
+            'name': 'Kenya'
+          },
+          'knowsAbout': [
+            'Houses for rent in Kenya',
+            'Apartments for rent in Nairobi',
+            'Bedsitters in Nairobi',
+            'Kilimani apartments for rent',
+            'Westlands apartments for rent'
+          ]
+        },
+        {
+          '@type': 'FAQPage',
+          'mainEntity': KENYA_RENTAL_FAQS.map(faq => ({
+            '@type': 'Question',
+            'name': faq.q,
+            'acceptedAnswer': {
+              '@type': 'Answer',
+              'text': faq.a
+            }
+          }))
         }
       ]
     }
@@ -333,6 +398,33 @@ const HomePage: React.FC = () => {
       {/* Featured Grid */}
       <section id="listings" className="py-24 bg-slate-50 border-y border-slate-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Quick Search Hub for High-Ranking Kenyan Google Searches */}
+          <div className="mb-6 flex flex-wrap items-center gap-2">
+            <span className="text-[11px] font-black uppercase text-slate-500 tracking-wider flex items-center gap-1.5 py-1">
+              <Sparkles className="w-3.5 h-3.5 text-blue-600" /> Popular Google Searches:
+            </span>
+            {POPULAR_SEARCHES.map(item => {
+              const isSelected = (selectedCounty === item.county && (item.query ? locationSearch === item.query : true));
+              return (
+                <button
+                  key={item.label}
+                  type="button"
+                  onClick={() => {
+                    setSelectedCounty(item.county);
+                    setLocationSearch(item.query);
+                  }}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${
+                    isSelected
+                      ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-500/20'
+                      : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100 hover:border-slate-300 shadow-xs'
+                  }`}
+                >
+                  {item.label}
+                </button>
+              );
+            })}
+          </div>
+
           {/* Filter Toolbar for Tenants */}
           <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-xl mb-10 space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
@@ -534,6 +626,80 @@ const HomePage: React.FC = () => {
               </div>
             )}
           </motion.div>
+        </div>
+      </section>
+
+      {/* Frequently Asked Questions & Kenya House Hunting Guide (Google SEO & Rich Results) */}
+      <section id="faq" className="py-20 bg-white border-b border-slate-100">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <span className="px-3.5 py-1.5 bg-blue-50 text-blue-700 rounded-full text-[11px] font-black uppercase tracking-widest inline-flex items-center gap-1.5 mb-3 border border-blue-100">
+              <HelpCircle className="w-3.5 h-3.5" /> Tenant & Landlord Guide
+            </span>
+            <h2 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">
+              Frequently Asked Questions
+            </h2>
+            <p className="text-slate-500 text-sm sm:text-base font-medium mt-3 max-w-xl mx-auto">
+              Everything you need to know about searching, verifying, and renting houses across Kenya with zero middleman broker fees.
+            </p>
+          </div>
+
+          <div className="space-y-3.5">
+            {KENYA_RENTAL_FAQS.map((faq, index) => {
+              const isOpen = openFaqIndex === index;
+              return (
+                <div
+                  key={faq.q}
+                  className="rounded-2xl border border-slate-200/90 overflow-hidden transition-all bg-slate-50/50 hover:border-slate-300"
+                >
+                  <button
+                    type="button"
+                    onClick={() => setOpenFaqIndex(isOpen ? null : index)}
+                    className="w-full text-left p-5 sm:p-6 flex items-center justify-between gap-4 font-black text-slate-900 text-sm sm:text-base cursor-pointer select-none"
+                  >
+                    <span className="flex items-center gap-3">
+                      <span className="w-6 h-6 rounded-full bg-blue-100 text-blue-700 text-xs flex items-center justify-center shrink-0 font-black">
+                        {index + 1}
+                      </span>
+                      <span>{faq.q}</span>
+                    </span>
+                    <div className={`w-8 h-8 rounded-full bg-white border border-slate-200 flex items-center justify-center shrink-0 transition-transform ${isOpen ? 'rotate-180 bg-blue-50 border-blue-200 text-blue-600' : 'text-slate-500'}`}>
+                      <ChevronDown className="w-4 h-4" />
+                    </div>
+                  </button>
+
+                  <AnimatePresence initial={false}>
+                    {isOpen && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                      >
+                        <div className="px-5 sm:px-6 pb-6 pt-1 text-xs sm:text-sm font-medium text-slate-600 leading-relaxed border-t border-slate-100/80 bg-white">
+                          {faq.a}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Quick Help Footer Card */}
+          <div className="mt-10 p-6 rounded-2xl bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
+            <div>
+              <h4 className="text-sm font-black text-slate-900">Looking for a specific estate in Kenya?</h4>
+              <p className="text-xs font-medium text-slate-600 mt-0.5">Explore apartments in Kilimani, Westlands, Roysambu, Juja, Mombasa, and Nakuru.</p>
+            </div>
+            <a
+              href="#listings"
+              className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all shrink-0 shadow-md shadow-blue-500/20"
+            >
+              Browse All Properties
+            </a>
+          </div>
         </div>
       </section>
 

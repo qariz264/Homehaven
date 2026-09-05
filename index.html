@@ -8,11 +8,18 @@
     <!-- Primary Meta Tags -->
     <meta name="title" content="HomeHaven | Verified Real Estate & House Listings in Kenya" />
     <meta name="description" content="A premium real estate marketplace connecting landlords and tenants with real M-Pesa payment-activated listings across Nairobi, Mombasa, Kisumu, and all 47 counties in Kenya." />
-    <meta name="keywords" content="houses for rent Kenya, Nairobi apartments, real estate Kenya, bedsitters Nairobi, Kilimani rentals, Westlands apartments, rent houses Mombasa, verified landlord listings, Kenyan real estate" />
+    <meta name="keywords" content="HomeHaven, HomeHaven Kenya, houses for rent Kenya, Nairobi apartments for rent, bedsitters Nairobi, Kilimani rentals, Westlands apartments, rent houses Mombasa, verified landlord listings Kenya, affordable housing Nairobi, houses for rent Eldoret, houses for rent Kisumu, Thika rentals, Juja bedsitters, Roysambu apartments, real estate Kenya" />
     <meta name="author" content="HomeHaven Kenya" />
     <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
+    <meta name="googlebot" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
+    <meta name="bingbot" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
     <meta name="theme-color" content="#2563eb" />
-    <link rel="canonical" href="https://homehaven.co.ke" />
+    <meta name="application-name" content="HomeHaven Kenya" />
+    <meta name="apple-mobile-web-app-title" content="HomeHaven" />
+    <link rel="canonical" href="https://myhomehaven.co.ke" />
+
+    <!-- Google Site Verification for Google Search Console (populated via admin or meta) -->
+    <meta name="google-site-verification" content="homehaven-kenya-search-console-verification" />
 
     <!-- Geo Meta Tags for Kenyan Local SEO -->
     <meta name="geo.region" content="KE" />
@@ -24,7 +31,7 @@
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="HomeHaven Kenya" />
     <meta property="og:locale" content="en_KE" />
-    <meta property="og:url" content="https://homehaven.co.ke" />
+    <meta property="og:url" content="https://myhomehaven.co.ke" />
     <meta property="og:title" content="HomeHaven | Verified Real Estate & House Listings in Kenya" />
     <meta property="og:description" content="A premium real estate marketplace connecting landlords and tenants with real M-Pesa payment-activated listings across Nairobi, Mombasa, Kisumu, and all 47 counties in Kenya." />
     <meta property="og:image" content="https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=1200&h=630&q=80" />
@@ -34,28 +41,34 @@
 
     <!-- Twitter Cards -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:url" content="https://homehaven.co.ke" />
+    <meta name="twitter:url" content="https://myhomehaven.co.ke" />
     <meta name="twitter:title" content="HomeHaven | Verified Real Estate & House Listings in Kenya" />
     <meta name="twitter:description" content="A premium real estate marketplace connecting landlords and tenants with real M-Pesa payment-activated listings across Kenya." />
     <meta name="twitter:image" content="https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=1200&h=630&q=80" />
 
-    <!-- Structured Data / JSON-LD for Google Rich Results -->
+    <!-- Structured Data / JSON-LD for Google Rich Results & Autocomplete Knowledge Graph -->
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
         "@graph": [
           {
             "@type": "WebSite",
-            "@id": "https://homehaven.co.ke/#website",
-            "url": "https://homehaven.co.ke",
+            "@id": "https://myhomehaven.co.ke/#website",
+            "url": "https://myhomehaven.co.ke",
             "name": "HomeHaven",
-            "description": "Kenya's premier verified real estate portal for rental houses and apartments.",
+            "alternateName": [
+              "Home Haven",
+              "HomeHaven Kenya",
+              "Home Haven Kenya",
+              "HomeHaven Real Estate"
+            ],
+            "description": "Kenya's premier verified real estate portal for rental houses, apartments, and bedsitters.",
             "potentialAction": [
               {
                 "@type": "SearchAction",
                 "target": {
                   "@type": "EntryPoint",
-                  "urlTemplate": "https://homehaven.co.ke/?search={search_term_string}"
+                  "urlTemplate": "https://myhomehaven.co.ke/?search={search_term_string}"
                 },
                 "query-input": "required name=search_term_string"
               }
@@ -64,18 +77,30 @@
           },
           {
             "@type": "RealEstateAgent",
-            "@id": "https://homehaven.co.ke/#organization",
+            "@id": "https://myhomehaven.co.ke/#organization",
             "name": "HomeHaven Kenya",
-            "url": "https://homehaven.co.ke",
+            "alternateName": ["HomeHaven", "Home Haven Kenya"],
+            "url": "https://myhomehaven.co.ke",
             "logo": "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=400&h=400&q=80",
             "image": "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=1200&h=630&q=80",
-            "description": "Verified residential and commercial property marketplace operating in Kenya.",
+            "description": "Verified residential and commercial property marketplace operating across all 47 counties in Kenya.",
             "address": {
               "@type": "PostalAddress",
               "addressLocality": "Nairobi",
               "addressRegion": "Nairobi County",
               "addressCountry": "KE"
             },
+            "areaServed": {
+              "@type": "Country",
+              "name": "Kenya"
+            },
+            "knowsAbout": [
+              "Houses for rent in Kenya",
+              "Apartments for rent in Nairobi",
+              "Bedsitters in Nairobi",
+              "Kenyan Real Estate Marketplace",
+              "Verified Landlord Listings"
+            ],
             "priceRange": "KES 5000 - KES 500000",
             "currenciesAccepted": "KES"
           }

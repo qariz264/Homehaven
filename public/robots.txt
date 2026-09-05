@@ -1,13 +1,22 @@
-# robots.txt for HomeHaven Kenya (https://homehaven.co.ke)
+# robots.txt for HomeHaven Kenya (https://myhomehaven.co.ke)
 User-agent: *
 Allow: /
 Allow: /listings
 Allow: /listing/*
+Allow: /auth
+Allow: /sitemap.xml
+
+# Googlebot specific directives
+User-agent: Googlebot
+Allow: /
+Allow: /listings
+Allow: /listing/*
+Allow: /sitemap.xml
 
 # Disallow private user/admin dashboard panels from indexing
 Disallow: /admin
 Disallow: /dashboard
 Disallow: /create-listing
 
-# Sitemap location
-Sitemap: https://homehaven.co.ke/sitemap.xml
+# Sitemap location for Google Search Console and web crawlers
+Sitemap: https://myhomehaven.co.ke/sitemap.xml

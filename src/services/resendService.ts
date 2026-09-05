@@ -188,7 +188,7 @@ export function getOtpEmailHtml(otp: string, name?: string): string {
     </div>
     <div class="footer">
       &copy; ${new Date().getFullYear()} HomeHaven Kenya Ltd. All rights reserved.<br>
-      P.O. Box Nairobi, Kenya &bull; Support: support@homehaven.co.ke
+      P.O. Box Nairobi, Kenya &bull; Support: support@myhomehaven.co.ke
     </div>
   </div>
 </body>

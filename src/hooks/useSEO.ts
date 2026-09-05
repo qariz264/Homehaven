@@ -41,8 +41,20 @@ export const useSEO = ({
     setMetaTag('name', 'description', description);
     setMetaTag('name', 'title', formattedTitle);
     setMetaTag('name', 'robots', robots);
+    setMetaTag('name', 'googlebot', robots);
+    setMetaTag('name', 'bingbot', robots);
     if (keywords) {
       setMetaTag('name', 'keywords', keywords);
+    }
+
+    // Google Site Verification (custom or default)
+    try {
+      const savedVerification = localStorage.getItem('homehaven_google_verification');
+      if (savedVerification) {
+        setMetaTag('name', 'google-site-verification', savedVerification);
+      }
+    } catch {
+      // ignore storage access errors
     }
 
     // 3. Open Graph Tags

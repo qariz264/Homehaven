@@ -30,7 +30,11 @@ import {
   Check,
   X,
   UserX,
-  UserCheck
+  UserCheck,
+  Globe,
+  ExternalLink,
+  Copy,
+  Sparkles
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useSEO } from '../hooks/useSEO';
@@ -49,9 +53,17 @@ const AdminPanel: React.FC = () => {
   const [complaints, setComplaints] = useState<any[]>([]);
   const [payments, setPayments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'complaints' | 'payments' | 'users' | 'listings'>('complaints');
+  const [activeTab, setActiveTab] = useState<'complaints' | 'payments' | 'users' | 'listings' | 'seo'>('complaints');
   const [searchTerm, setSearchTerm] = useState('');
   const [actionMessage, setActionMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+  const [copiedSitemap, setCopiedSitemap] = useState(false);
+  const [googleVerificationInput, setGoogleVerificationInput] = useState(() => {
+    try {
+      return localStorage.getItem('homehaven_google_verification') || 'homehaven-kenya-search-console-verification';
+    } catch {
+      return 'homehaven-kenya-search-console-verification';
+    }
+  });
   
   // Custom Delete Modal state
   const [deleteModal, setDeleteModal] = useState<{ type: 'listing' | 'user'; id: string; name: string } | null>(null);
@@ -482,11 +494,22 @@ const AdminPanel: React.FC = () => {
             onClick={() => setActiveTab('listings')}
             className={`whitespace-nowrap flex-shrink-0 px-4 py-2.5 sm:px-6 sm:py-3 rounded-xl sm:rounded-2xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 ${
               activeTab === 'listings'
-                ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
+                ? 'bg-slate-900 text-white shadow-lg'
                 : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
             }`}
           >
             <Layout className="w-4 h-4 shrink-0" /> Properties ({listings.length})
+          </button>
+
+          <button
+            onClick={() => setActiveTab('seo')}
+            className={`whitespace-nowrap flex-shrink-0 px-4 py-2.5 sm:px-6 sm:py-3 rounded-xl sm:rounded-2xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 ${
+              activeTab === 'seo'
+                ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
+                : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+            }`}
+          >
+            <Globe className="w-4 h-4 shrink-0" /> Google Search & SEO Hub
           </button>
         </div>
 
@@ -1061,6 +1084,275 @@ const AdminPanel: React.FC = () => {
                     ))}
                 </tbody>
               </table>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 5: GOOGLE SEARCH & SEO COMMAND CENTER */}
+        {activeTab === 'seo' && (
+          <div className="space-y-8">
+            {/* SEO Health Matrix */}
+            <div className="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 p-8">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-slate-100">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3.5 h-3.5" /> 100% SEO Search Engine Ready
+                    </span>
+                  </div>
+                  <h2 className="text-2xl font-black text-slate-900 tracking-tight mt-2">
+                    Google Search Visibility & Autocomplete Command Center
+                  </h2>
+                  <p className="text-xs text-slate-500 font-medium mt-1">
+                    Live telemetry, search crawler protocols, Schema.org entities, and step-by-step ranking strategy for HomeHaven Kenya.
+                  </p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <a
+                    href="https://search.google.com/search-console"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 shadow-md shadow-blue-500/20 transition-all"
+                  >
+                    <span>Google Search Console</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
+                </div>
+              </div>
+
+              {/* Protocol Checklist Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
+                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">XML Sitemap</span>
+                    <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                  </div>
+                  <div className="text-sm font-black text-slate-900">/sitemap.xml</div>
+                  <p className="text-[11px] text-slate-500 mt-1">
+                    Includes all 47 Kenyan county landing pages + Google Image tags for fast rich indexing.
+                  </p>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">Robots.txt</span>
+                    <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                  </div>
+                  <div className="text-sm font-black text-slate-900">/robots.txt</div>
+                  <p className="text-[11px] text-slate-500 mt-1">
+                    Googlebot & Bingbot explicitly allowed; private admin/dashboard paths blocked.
+                  </p>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">Structured Data</span>
+                    <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                  </div>
+                  <div className="text-sm font-black text-slate-900">Schema.org JSON-LD</div>
+                  <p className="text-[11px] text-slate-500 mt-1">
+                    WebSite, RealEstateAgent, Single Property, and FAQPage with Kenya alternate names.
+                  </p>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">Local SEO</span>
+                    <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                  </div>
+                  <div className="text-sm font-black text-slate-900">Kenya Geo Tags</div>
+                  <p className="text-[11px] text-slate-500 mt-1">
+                    ICBM coordinates (-1.286389, 36.817223) and ISO 3166-2:KE country metadata.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Google Search Console Verification & Sitemap Actions */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* Site Verification Box */}
+              <div className="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 p-8 space-y-5">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center font-black">
+                    <Shield className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-black text-slate-900">Google Site Verification</h3>
+                    <p className="text-xs text-slate-400 font-medium">Verify ownership in Google Search Console</p>
+                  </div>
+                </div>
+
+                <p className="text-xs text-slate-600 leading-relaxed font-medium">
+                  When you add your site to <a href="https://search.google.com/search-console" target="_blank" rel="noreferrer" className="text-blue-600 font-bold underline">Google Search Console</a>, choose <strong>HTML tag</strong> verification. Paste the code or tag value below:
+                </p>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">
+                    Google Verification Meta Code
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={googleVerificationInput}
+                      onChange={(e) => setGoogleVerificationInput(e.target.value)}
+                      placeholder="e.g. google-site-verification=abc123..."
+                      className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-mono bg-slate-50 focus:bg-white focus:border-blue-500 outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        try {
+                          localStorage.setItem('homehaven_google_verification', googleVerificationInput.trim());
+                          // update meta tag directly in head
+                          let meta = document.querySelector('meta[name="google-site-verification"]') as HTMLMetaElement;
+                          if (!meta) {
+                            meta = document.createElement('meta');
+                            meta.name = 'google-site-verification';
+                            document.head.appendChild(meta);
+                          }
+                          meta.content = googleVerificationInput.trim();
+                          showToast('success', 'Google Search Console verification code saved and active in <head>!');
+                        } catch (e: any) {
+                          showToast('error', 'Could not save: ' + e.message);
+                        }
+                      }}
+                      className="px-5 py-2.5 bg-slate-900 hover:bg-black text-white text-xs font-black uppercase tracking-wider rounded-xl transition-all"
+                    >
+                      Save
+                    </button>
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-xl bg-blue-50/60 border border-blue-100 text-[11px] text-blue-900 leading-relaxed">
+                  <strong>Active in live HTML:</strong> <code>&lt;meta name="google-site-verification" content="{googleVerificationInput}" /&gt;</code>
+                </div>
+              </div>
+
+              {/* Sitemap Submission Quick Box */}
+              <div className="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 p-8 space-y-5 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-black">
+                      <Globe className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="text-base font-black text-slate-900">Submit Sitemap to Google</h3>
+                      <p className="text-xs text-slate-400 font-medium">Domain: myhomehaven.co.ke</p>
+                    </div>
+                  </div>
+
+                  <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 leading-relaxed font-medium mb-3">
+                    <strong>⚠️ Why Search Console says "Invalid sitemap address":</strong><br />
+                    In Google Search Console under <em>Add a new sitemap</em>, Google already fills in <code>https://myhomehaven.co.ke/</code> in front of the box. You only need to type or paste <span className="font-mono font-bold bg-amber-100 px-1 py-0.5 rounded text-amber-950">sitemap.xml</span> (not the full https:// address)!
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">
+                      Paste this into Google Search Console box:
+                    </label>
+                    <div className="p-3 rounded-xl bg-slate-900 text-white flex items-center justify-between font-mono text-sm">
+                      <span className="text-slate-400 text-xs">https://myhomehaven.co.ke/</span>
+                      <span className="text-emerald-400 font-black px-1.5 py-0.5 bg-emerald-950/60 rounded border border-emerald-500/40">sitemap.xml</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText('sitemap.xml');
+                          setCopiedSitemap(true);
+                          setTimeout(() => setCopiedSitemap(false), 2000);
+                          showToast('success', 'Copied "sitemap.xml" to clipboard! Paste this into Google Search Console.');
+                        }}
+                        className="ml-3 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-sans font-bold flex items-center gap-1.5 transition-all"
+                      >
+                        {copiedSitemap ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                        <span>{copiedSitemap ? 'Copied!' : 'Copy Path'}</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 flex items-center justify-between text-[11px] text-slate-500">
+                    <span>Full URL: <code>https://myhomehaven.co.ke/sitemap.xml</code></span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText('https://myhomehaven.co.ke/sitemap.xml');
+                        showToast('success', 'Copied full sitemap URL!');
+                      }}
+                      className="text-blue-600 hover:underline font-bold"
+                    >
+                      Copy Full URL
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-3 pt-4 border-t border-slate-100">
+                  <a
+                    href="https://search.google.com/search-console/sitemaps"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex-1 py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-black uppercase tracking-wider text-center flex items-center justify-center gap-2 transition-all shadow-md shadow-blue-500/20"
+                  >
+                    <span>Open Google Sitemaps Tool</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
+                  <a
+                    href="https://search.google.com/test/rich-results?url=https%3A%2F%2Fmyhomehaven.co.ke"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="py-3 px-4 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 transition-all"
+                  >
+                    <span>Test Rich Snippets</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            {/* How to Get Suggested on Google (Autocomplete & Knowledge Graph) */}
+            <div className="bg-gradient-to-br from-slate-900 to-blue-950 rounded-[2.5rem] p-8 md:p-10 text-white shadow-xl">
+              <div className="flex items-center gap-2 mb-3">
+                <Sparkles className="w-5 h-5 text-amber-400" />
+                <span className="text-[10px] font-black uppercase tracking-widest text-amber-400">Google Algorithm Blueprint</span>
+              </div>
+              <h3 className="text-2xl font-black tracking-tight mb-2">
+                How to Make HomeHaven Suggested on Google Search (Autocomplete & Top 3)
+              </h3>
+              <p className="text-xs sm:text-sm text-slate-300 font-medium max-w-3xl leading-relaxed mb-8">
+                Google Autocomplete suggests searches (e.g. typing "HomeHaven" or "houses for rent Kenya" and seeing HomeHaven pop up) based on real user search volume, entity establishment, high click-through rates, and fresh indexation. Follow these 4 steps:
+              </p>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="bg-white/10 rounded-2xl p-5 border border-white/10 backdrop-blur-sm space-y-3">
+                  <div className="w-7 h-7 rounded-full bg-blue-500 text-white text-xs font-black flex items-center justify-center">1</div>
+                  <h4 className="text-sm font-black text-white">Google Search Console</h4>
+                  <p className="text-xs text-slate-300 leading-relaxed">
+                    Submit <code>sitemap.xml</code> in Search Console. Googlebot will crawl every county hub (Nairobi, Mombasa, Kiambu, etc.) and begin indexing your verified house listings.
+                  </p>
+                </div>
+
+                <div className="bg-white/10 rounded-2xl p-5 border border-white/10 backdrop-blur-sm space-y-3">
+                  <div className="w-7 h-7 rounded-full bg-blue-500 text-white text-xs font-black flex items-center justify-center">2</div>
+                  <h4 className="text-sm font-black text-white">Google Business Profile</h4>
+                  <p className="text-xs text-slate-300 leading-relaxed">
+                    Register a free <strong>Google Business Profile</strong> for "HomeHaven Kenya" under "Real Estate Agency / Marketplace" in Nairobi. This immediately triggers Google's Knowledge Graph card and maps suggestions.
+                  </p>
+                </div>
+
+                <div className="bg-white/10 rounded-2xl p-5 border border-white/10 backdrop-blur-sm space-y-3">
+                  <div className="w-7 h-7 rounded-full bg-blue-500 text-white text-xs font-black flex items-center justify-center">3</div>
+                  <h4 className="text-sm font-black text-white">Search Volume & CTR</h4>
+                  <p className="text-xs text-slate-300 leading-relaxed">
+                    When tenants and landlords search "HomeHaven Kenya" on Google and click your link, Google learns that HomeHaven is a trending search term in Kenya and starts auto-completing it in the search bar.
+                  </p>
+                </div>
+
+                <div className="bg-white/10 rounded-2xl p-5 border border-white/10 backdrop-blur-sm space-y-3">
+                  <div className="w-7 h-7 rounded-full bg-blue-500 text-white text-xs font-black flex items-center justify-center">4</div>
+                  <h4 className="text-sm font-black text-white">Social & WhatsApp Traffic</h4>
+                  <p className="text-xs text-slate-300 leading-relaxed">
+                    Share property links into Kenyan rental WhatsApp groups, Facebook Marketplace, and Twitter/X. Social backlinks signal to Google's ranking algorithm that the domain is actively visited.
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         )}

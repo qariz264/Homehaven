@@ -55,14 +55,14 @@ const ListingDetailsPage: React.FC = () => {
     description: propertyDesc,
     ogImage: propertyImage,
     ogType: 'product',
-    canonicalUrl: id ? `https://homehaven.co.ke/listing/${id}` : undefined,
+    canonicalUrl: id ? `https://myhomehaven.co.ke/listing/${id}` : undefined,
     schema: listing ? {
       '@context': 'https://schema.org',
       '@type': 'RealEstateListing',
       'name': listing.title,
       'description': listing.description || propertyDesc,
       'image': listing.images || [propertyImage],
-      'url': `https://homehaven.co.ke/listing/${id}`,
+      'url': `https://myhomehaven.co.ke/listing/${id}`,
       'offers': {
         '@type': 'Offer',
         'price': listing.price,
