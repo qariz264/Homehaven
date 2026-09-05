@@ -244,22 +244,6 @@ const ReportFraudModal: React.FC<ReportFraudModalProps> = ({ isOpen, onClose }) 
                       className="w-full min-w-0 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 sm:py-2.5 text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-red-500/20 resize-y min-h-[72px] max-h-[160px]"
                     />
                   </div>
-
-                  {/* Immediate in-flow submit button so it can never be missed */}
-                  <div className="pt-2">
-                    <button
-                      type="submit"
-                      disabled={submitting}
-                      className="w-full py-3 sm:py-3.5 bg-red-600 hover:bg-red-700 text-white font-black text-xs sm:text-sm uppercase tracking-wider rounded-xl shadow-lg shadow-red-500/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50 active:scale-[0.99]"
-                    >
-                      {submitting ? (
-                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      ) : (
-                        <Send className="w-4 h-4 shrink-0" />
-                      )}
-                      <span>{submitting ? 'Sending Complaint to Admin...' : 'Send Complaint to Admin'}</span>
-                    </button>
-                  </div>
                 </div>
               </div>
 

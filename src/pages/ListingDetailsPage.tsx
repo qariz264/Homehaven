@@ -642,22 +642,6 @@ const ListingDetailsPage: React.FC = () => {
                         onChange={(e) => setComplaintDetails(e.target.value)}
                       />
                     </div>
-
-                    {/* Immediate In-flow submit button */}
-                    <div className="pt-2">
-                      <button
-                        type="submit"
-                        disabled={submittingComplaint}
-                        className="w-full py-3 sm:py-3.5 bg-red-600 hover:bg-red-700 text-white font-black text-xs sm:text-sm uppercase tracking-wider rounded-xl shadow-lg shadow-red-500/25 transition-all flex items-center justify-center gap-2 disabled:opacity-50 active:scale-[0.99]"
-                      >
-                        {submittingComplaint ? (
-                          <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                        ) : (
-                          <Send className="w-4 h-4 shrink-0" />
-                        )}
-                        <span>{submittingComplaint ? 'Sending Complaint to Admin...' : 'Submit Complaint to Admin'}</span>
-                      </button>
-                    </div>
                   </div>
 
                   {/* Pinned Action Buttons Footer */}
