@@ -309,7 +309,9 @@ const LandlordDashboard: React.FC = () => {
                   <AlertCircle className="w-6 h-6 shrink-0 text-white" />
                   <div>
                     <strong className="font-black uppercase tracking-wider block text-sm">Account Suspended by Admin:</strong>
-                    <p className="text-xs font-medium text-red-100 mt-0.5">Your landlord account has been suspended due to tenant complaints or fraud reports. Contact admin (stephenkariuki955@gmail.com) for details.</p>
+                    <p className="text-xs font-medium text-red-100 mt-0.5">
+                      Your landlord account has been suspended due to tenant complaints or fraud reports. Contact admin (<a href="mailto:techa5080@gmail.com" className="underline font-bold text-white hover:text-red-200">techa5080@gmail.com</a>) for details.
+                    </p>
                   </div>
                 </div>
               )}

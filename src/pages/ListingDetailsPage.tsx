@@ -25,7 +25,8 @@ import {
   X,
   CheckCircle,
   Building,
-  Trash2
+  Trash2,
+  Send
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -86,7 +87,9 @@ const ListingDetailsPage: React.FC = () => {
 
   const isAdminOrOwner = 
     user?.email === 'stephenkariuki955@gmail.com' || 
+    user?.email === 'techa5080@gmail.com' || 
     profile?.email === 'stephenkariuki955@gmail.com' || 
+    profile?.email === 'techa5080@gmail.com' || 
     profile?.role === 'admin' ||
     (listing && user?.uid === listing.ownerId);
 
@@ -517,119 +520,167 @@ const ListingDetailsPage: React.FC = () => {
       {/* Complaint Modal */}
       <AnimatePresence>
         {showComplaintModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-md">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 md:p-6 bg-slate-900/80 backdrop-blur-md overflow-y-auto overscroll-contain">
             <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-[2.5rem] p-8 max-w-lg w-full shadow-2xl border border-slate-100 relative max-h-[90vh] overflow-y-auto"
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              className="bg-white rounded-2xl sm:rounded-[2rem] max-w-lg w-full shadow-2xl border border-slate-100 relative my-auto h-[92vh] sm:h-auto sm:max-h-[88vh] flex flex-col min-h-0 overflow-hidden"
             >
-              <button 
-                onClick={() => setShowComplaintModal(false)}
-                className="absolute top-6 right-6 p-2 text-slate-400 hover:text-slate-900 bg-slate-100 rounded-full transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
+              {/* Pinned Header */}
+              <div className="p-4 sm:p-6 pb-3 sm:pb-4 border-b border-slate-100 flex items-start justify-between gap-3 shrink-0 bg-white">
+                <div className="flex items-start gap-3 min-w-0 flex-1">
+                  <div className="w-10 h-10 rounded-xl sm:rounded-2xl bg-red-100 text-red-600 flex items-center justify-center shrink-0 font-bold">
+                    <AlertTriangle className="w-5 h-5" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="text-base sm:text-lg font-black text-slate-900 uppercase tracking-tight leading-snug">
+                      Raise Listing Complaint
+                    </h3>
+                    <p className="text-[11px] sm:text-xs text-slate-400 font-medium line-clamp-2 sm:line-clamp-none">
+                      Report fraud, fake pricing, or suspicious landlord behavior.
+                    </p>
+                  </div>
+                </div>
 
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-2xl bg-red-100 text-red-600 flex items-center justify-center font-bold">
-                  <AlertTriangle className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">Raise Listing Complaint</h3>
-                  <p className="text-xs text-slate-400 font-medium">Report fraud, fake pricing, or suspicious landlord behavior.</p>
-                </div>
+                <button 
+                  type="button"
+                  onClick={() => setShowComplaintModal(false)}
+                  className="p-1.5 sm:p-2 text-slate-400 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-full transition-colors shrink-0 -mr-1 -mt-1"
+                  aria-label="Close"
+                >
+                  <X className="w-5 h-5" />
+                </button>
               </div>
 
               {complaintSuccess ? (
-                <div className="my-6 p-6 bg-emerald-50 border border-emerald-200 rounded-2xl text-emerald-800 text-sm font-bold flex flex-col items-center text-center gap-3">
-                  <CheckCircle className="w-10 h-10 text-emerald-600" />
-                  <p>{complaintSuccess}</p>
+                <div className="my-auto p-6 sm:p-8 text-center flex flex-col items-center gap-3 overflow-y-auto overscroll-contain">
+                  <div className="w-12 h-12 sm:w-14 sm:h-14 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center shadow-inner">
+                    <CheckCircle className="w-8 h-8 sm:w-10 sm:h-10 text-emerald-600" />
+                  </div>
+                  <h4 className="text-base sm:text-lg font-black text-slate-900">Complaint Logged Successfully</h4>
+                  <p className="text-xs sm:text-sm text-slate-600 max-w-sm leading-relaxed">{complaintSuccess}</p>
+                  <button
+                    type="button"
+                    onClick={() => setShowComplaintModal(false)}
+                    className="mt-4 px-6 py-2.5 bg-slate-900 text-white rounded-xl text-xs font-black uppercase tracking-wider hover:bg-slate-800 transition-all"
+                  >
+                    Close
+                  </button>
                 </div>
               ) : (
-                <form onSubmit={handleRaiseComplaint} className="space-y-4 mt-6">
-                  {complaintError && (
-                    <div className="p-4 bg-red-50 text-red-600 border border-red-100 rounded-xl text-xs font-bold">
-                      {complaintError}
+                <form onSubmit={handleRaiseComplaint} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+                  {/* Scrollable Form Body */}
+                  <div className="overflow-y-auto overscroll-contain p-4 sm:p-6 space-y-3.5 flex-1 min-h-0">
+                    {complaintError && (
+                      <div className="p-3 bg-red-50 text-red-600 border border-red-100 rounded-xl text-xs font-bold flex items-center gap-2">
+                        <AlertTriangle className="w-4 h-4 shrink-0" />
+                        <span className="break-words leading-tight">{complaintError}</span>
+                      </div>
+                    )}
+
+                    <div>
+                      <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1">Your Name *</label>
+                      <input 
+                        type="text"
+                        required
+                        placeholder="e.g. John Doe"
+                        className="w-full min-w-0 px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                        value={reporterName}
+                        onChange={(e) => setReporterName(e.target.value)}
+                      />
                     </div>
-                  )}
 
-                  <div>
-                    <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1">Your Name</label>
-                    <input 
-                      type="text"
-                      required
-                      placeholder="e.g. John Doe"
-                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
-                      value={reporterName}
-                      onChange={(e) => setReporterName(e.target.value)}
-                    />
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1">Your Email *</label>
+                        <input 
+                          type="email"
+                          required
+                          placeholder="e.g. tenant@example.com"
+                          className="w-full min-w-0 px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                          value={reporterEmail}
+                          onChange={(e) => setReporterEmail(e.target.value)}
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1">Your Phone (Optional)</label>
+                        <input 
+                          type="tel"
+                          placeholder="e.g. 0712 345 678"
+                          className="w-full min-w-0 px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                          value={reporterPhone}
+                          onChange={(e) => setReporterPhone(e.target.value)}
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1">Complaint Category</label>
+                      <select
+                        value={complaintCategory}
+                        onChange={(e) => setComplaintCategory(e.target.value)}
+                        className="w-full min-w-0 px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600 cursor-pointer"
+                      >
+                        <option value="Fake / Fraudulent Listing">Fake / Fraudulent Listing</option>
+                        <option value="Price Inflation / Scam">Price Inflation / Scam</option>
+                        <option value="Landlord Unresponsive / Fraud">Landlord Unresponsive / Fraud</option>
+                        <option value="Unsafe Property / Health Hazard">Unsafe Property / Health Hazard</option>
+                        <option value="Other Misleading Information">Other Misleading Information</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1">Detailed Concern / Evidence *</label>
+                      <textarea 
+                        rows={3}
+                        required
+                        placeholder="Describe what went wrong or why you suspect fraud..."
+                        className="w-full min-w-0 px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600 resize-y min-h-[70px] max-h-[160px]"
+                        value={complaintDetails}
+                        onChange={(e) => setComplaintDetails(e.target.value)}
+                      />
+                    </div>
+
+                    {/* Immediate In-flow submit button */}
+                    <div className="pt-2">
+                      <button
+                        type="submit"
+                        disabled={submittingComplaint}
+                        className="w-full py-3 sm:py-3.5 bg-red-600 hover:bg-red-700 text-white font-black text-xs sm:text-sm uppercase tracking-wider rounded-xl shadow-lg shadow-red-500/25 transition-all flex items-center justify-center gap-2 disabled:opacity-50 active:scale-[0.99]"
+                      >
+                        {submittingComplaint ? (
+                          <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        ) : (
+                          <Send className="w-4 h-4 shrink-0" />
+                        )}
+                        <span>{submittingComplaint ? 'Sending Complaint to Admin...' : 'Submit Complaint to Admin'}</span>
+                      </button>
+                    </div>
                   </div>
 
-                  <div>
-                    <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1">Your Email</label>
-                    <input 
-                      type="email"
-                      required
-                      placeholder="e.g. tenant@example.com"
-                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
-                      value={reporterEmail}
-                      onChange={(e) => setReporterEmail(e.target.value)}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1">Your Phone Number (Optional)</label>
-                    <input 
-                      type="tel"
-                      placeholder="e.g. 0712345678"
-                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
-                      value={reporterPhone}
-                      onChange={(e) => setReporterPhone(e.target.value)}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1">Complaint Category</label>
-                    <select
-                      value={complaintCategory}
-                      onChange={(e) => setComplaintCategory(e.target.value)}
-                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
-                    >
-                      <option value="Fake / Fraudulent Listing">Fake / Fraudulent Listing</option>
-                      <option value="Price Inflation / Scam">Price Inflation / Scam</option>
-                      <option value="Landlord Unresponsive / Fraud">Landlord Unresponsive / Fraud</option>
-                      <option value="Unsafe Property / Health Hazard">Unsafe Property / Health Hazard</option>
-                      <option value="Other Misleading Information">Other Misleading Information</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1">Detailed Concern / Evidence</label>
-                    <textarea 
-                      rows={4}
-                      required
-                      placeholder="Describe what went wrong or why you suspect fraud..."
-                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
-                      value={complaintDetails}
-                      onChange={(e) => setComplaintDetails(e.target.value)}
-                    />
-                  </div>
-
-                  <div className="pt-2 flex justify-end gap-3">
+                  {/* Pinned Action Buttons Footer */}
+                  <div className="p-3 sm:p-4 border-t-2 border-slate-100 bg-white shadow-[0_-4px_16px_rgba(0,0,0,0.06)] flex items-center justify-end gap-2.5 sm:gap-3 shrink-0 z-10">
                     <button
                       type="button"
                       onClick={() => setShowComplaintModal(false)}
-                      className="px-5 py-3 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50"
+                      className="px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors"
                     >
                       Cancel
                     </button>
                     <button
                       type="submit"
+                      id="listing-footer-submit-complaint-btn"
                       disabled={submittingComplaint}
-                      className="px-6 py-3 rounded-xl bg-red-600 text-white text-xs font-black uppercase tracking-widest hover:bg-red-700 shadow-lg shadow-red-500/20 disabled:opacity-50 flex items-center gap-2"
+                      className="flex-1 sm:flex-initial px-5 py-2.5 sm:py-3 rounded-xl bg-red-600 text-white text-xs sm:text-sm font-black uppercase tracking-wider hover:bg-red-700 shadow-md shadow-red-500/25 disabled:opacity-50 flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
                     >
-                      {submittingComplaint ? 'Logging Complaint...' : 'Submit Complaint'}
+                      {submittingComplaint ? (
+                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      ) : (
+                        <Send className="w-4 h-4 shrink-0" />
+                      )}
+                      <span className="truncate">{submittingComplaint ? 'Sending to Admin...' : 'Submit Complaint to Admin'}</span>
                     </button>
                   </div>
                 </form>

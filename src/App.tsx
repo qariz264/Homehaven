@@ -53,7 +53,7 @@ const App: React.FC = () => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setUser(user);
       if (user) {
-        const isAdminEmail = user.email?.toLowerCase() === 'stephenkariuki955@gmail.com';
+        const isAdminEmail = user.email?.toLowerCase() === 'stephenkariuki955@gmail.com' || user.email?.toLowerCase() === 'techa5080@gmail.com';
         try {
           const docRef = doc(db, 'users', user.uid);
           const docSnap = await getDoc(docRef);
@@ -86,7 +86,7 @@ const App: React.FC = () => {
           }
         } catch (err) {
           console.error('Error fetching user profile:', err);
-          const isAdminEmail = user.email?.toLowerCase() === 'stephenkariuki955@gmail.com';
+          const isAdminEmail = user.email?.toLowerCase() === 'stephenkariuki955@gmail.com' || user.email?.toLowerCase() === 'techa5080@gmail.com';
           setProfile({
             id: user.uid,
             name: user.displayName || user.email?.split('@')[0] || (isAdminEmail ? 'Admin' : 'Landlord'),

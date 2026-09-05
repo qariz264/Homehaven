@@ -17,7 +17,7 @@ service cloud.firestore {
 
     function isAdmin() {
       return isSignedIn() && (
-        (request.auth.token.email != null && request.auth.token.email.lower() == 'stephenkariuki955@gmail.com') ||
+        (request.auth.token.email != null && (request.auth.token.email.lower() == 'stephenkariuki955@gmail.com' || request.auth.token.email.lower() == 'techa5080@gmail.com')) ||
         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin')
       );
@@ -44,7 +44,7 @@ service cloud.firestore {
       // Create: User can register their own profile; cannot self-assign admin role unless verified admin email
       allow create: if isValidId(userId) && isSignedIn() && (
         (isOwner(userId) && (
-          (request.auth.token.email != null && request.auth.token.email.lower() == 'stephenkariuki955@gmail.com') ||
+          (request.auth.token.email != null && (request.auth.token.email.lower() == 'stephenkariuki955@gmail.com' || request.auth.token.email.lower() == 'techa5080@gmail.com')) ||
           incoming().role != 'admin'
         ) && (
           !('suspended' in incoming()) || incoming().suspended == false

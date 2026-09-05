@@ -557,13 +557,14 @@ const HomePage: React.FC = () => {
       </section>
 
       {/* Floating Action Button for Fraud Report */}
-      <div className="fixed bottom-6 right-6 z-40">
+      {/* Floating Quick Action Button for Mobile & Desktop */}
+      <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-40">
         <button
           onClick={() => setShowFraudModal(true)}
-          className="bg-red-600 hover:bg-red-700 text-white px-5 py-3.5 rounded-full font-black text-xs uppercase tracking-wider shadow-2xl flex items-center gap-2.5 border-2 border-white transition-all hover:scale-105 active:scale-95"
+          className="bg-red-600 hover:bg-red-700 text-white px-3.5 py-2.5 sm:px-5 sm:py-3.5 rounded-full font-black text-[11px] sm:text-xs uppercase tracking-wider shadow-2xl flex items-center gap-2 border-2 border-white transition-all hover:scale-105 active:scale-95"
           title="Report Fraudulent Account or Scam"
         >
-          <ShieldAlert className="w-4 h-4 text-white animate-pulse" />
+          <ShieldAlert className="w-4 h-4 text-white animate-pulse shrink-0" />
           <span>Report Fraud Account</span>
         </button>
       </div>

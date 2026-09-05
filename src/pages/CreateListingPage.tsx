@@ -25,7 +25,8 @@ import {
   Check,
   RotateCcw,
   Smartphone,
-  CheckCircle
+  CheckCircle,
+  AlertCircle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useSEO } from '../hooks/useSEO';
@@ -257,6 +258,10 @@ const CreateListingPage: React.FC = () => {
       throw new Error('Your session has expired. Please log in again.');
     }
 
+    if (profile?.suspended) {
+      throw new Error('Your landlord account has been suspended due to tenant complaints or fraud reports. Contact admin (techa5080@gmail.com) for details.');
+    }
+
     const finalImages = images.length > 0 
       ? images 
       : ['https://images.unsplash.com/photo-1570129477492-45c003edd2be?auto=format&fit=crop&w=800&q=80'];
@@ -452,6 +457,18 @@ const CreateListingPage: React.FC = () => {
     <div className="min-h-screen bg-[#f8fafc] pt-28 pb-24">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
+        {profile?.suspended && (
+          <div className="mb-8 max-w-4xl mx-auto p-5 rounded-2xl bg-red-600 text-white shadow-xl flex items-center gap-3">
+            <AlertCircle className="w-6 h-6 shrink-0 text-white" />
+            <div>
+              <strong className="font-black uppercase tracking-wider block text-sm">Account Suspended by Admin:</strong>
+              <p className="text-xs font-medium text-red-100 mt-0.5">
+                Your landlord account has been suspended due to tenant complaints or fraud reports. Contact admin (<a href="mailto:techa5080@gmail.com" className="underline font-bold text-white hover:text-red-200">techa5080@gmail.com</a>) for details.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Step Indicator Header */}
         <div className="mb-10 max-w-4xl mx-auto">
           <div className="flex items-center justify-between gap-2 sm:gap-4">

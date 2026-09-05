@@ -330,8 +330,13 @@ const AdminPanel: React.FC = () => {
     }
   };
 
-  // Admin Privilege Guard for stephenkariuki955@gmail.com
-  const isAdmin = user?.email === 'stephenkariuki955@gmail.com' || profile?.email === 'stephenkariuki955@gmail.com' || profile?.role === 'admin';
+  // Admin Privilege Guard for admin emails
+  const isAdmin = 
+    user?.email === 'stephenkariuki955@gmail.com' || 
+    user?.email === 'techa5080@gmail.com' || 
+    profile?.email === 'stephenkariuki955@gmail.com' || 
+    profile?.email === 'techa5080@gmail.com' || 
+    profile?.role === 'admin';
 
   if (!isAdmin) {
     return (
@@ -341,7 +346,7 @@ const AdminPanel: React.FC = () => {
         </div>
         <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Access Restricted</h2>
         <p className="text-slate-500 font-medium text-sm mt-2 max-w-md">
-          This system console is reserved for administrative privileges (stephenkariuki955@gmail.com). Please log in with admin credentials.
+          This system console is reserved for administrative privileges. Please log in with admin credentials.
         </p>
         <Link to="/" className="mt-6 bg-slate-900 text-white px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest">
           Return to Hub Home
@@ -515,7 +520,7 @@ const AdminPanel: React.FC = () => {
                     const isAccountReport = c.type === 'account_fraud' || c.listingId === 'ACCOUNT_REPORT';
 
                     return (
-                      <div key={c.id} className={`p-8 transition-colors ${isAccountReport ? 'bg-red-50/20' : 'hover:bg-slate-50/50'}`}>
+                      <div key={c.id} className={`p-4 sm:p-6 lg:p-8 transition-colors ${isAccountReport ? 'bg-red-50/20' : 'hover:bg-slate-50/50'}`}>
                         <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-6">
                           
                           <div className="space-y-3 flex-1">
