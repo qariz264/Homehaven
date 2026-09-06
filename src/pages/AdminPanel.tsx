@@ -1237,13 +1237,13 @@ const AdminPanel: React.FC = () => {
                     </div>
                     <div>
                       <h3 className="text-base font-black text-slate-900">Submit Sitemap to Google</h3>
-                      <p className="text-xs text-slate-400 font-medium">Domain: myhomehaven.co.ke</p>
+                      <p className="text-xs text-slate-400 font-medium">Domain: www.myhomehaven.co.ke</p>
                     </div>
                   </div>
 
                   <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 leading-relaxed font-medium mb-3">
                     <strong>⚠️ Why Search Console says "Invalid sitemap address":</strong><br />
-                    In Google Search Console under <em>Add a new sitemap</em>, Google already fills in <code>https://myhomehaven.co.ke/</code> in front of the box. You only need to type or paste <span className="font-mono font-bold bg-amber-100 px-1 py-0.5 rounded text-amber-950">sitemap.xml</span> (not the full https:// address)!
+                    In Google Search Console under <em>Add a new sitemap</em>, Google already fills in <code>https://www.myhomehaven.co.ke/</code> in front of the box. You only need to enter <span className="font-mono font-bold bg-amber-100 px-1 py-0.5 rounded text-amber-950">sitemap.xml</span> (not the full address)!
                   </div>
 
                   <div className="space-y-2">
@@ -1251,7 +1251,7 @@ const AdminPanel: React.FC = () => {
                       Paste this into Google Search Console box:
                     </label>
                     <div className="p-3 rounded-xl bg-slate-900 text-white flex items-center justify-between font-mono text-sm">
-                      <span className="text-slate-400 text-xs">https://myhomehaven.co.ke/</span>
+                      <span className="text-slate-400 text-xs">https://www.myhomehaven.co.ke/</span>
                       <span className="text-emerald-400 font-black px-1.5 py-0.5 bg-emerald-950/60 rounded border border-emerald-500/40">sitemap.xml</span>
                       <button
                         type="button"
@@ -1270,11 +1270,11 @@ const AdminPanel: React.FC = () => {
                   </div>
 
                   <div className="mt-3 flex items-center justify-between text-[11px] text-slate-500">
-                    <span>Full URL: <code>https://myhomehaven.co.ke/sitemap.xml</code></span>
+                    <span>Full URL: <code>https://www.myhomehaven.co.ke/sitemap.xml</code></span>
                     <button
                       type="button"
                       onClick={() => {
-                        navigator.clipboard.writeText('https://myhomehaven.co.ke/sitemap.xml');
+                        navigator.clipboard.writeText('https://www.myhomehaven.co.ke/sitemap.xml');
                         showToast('success', 'Copied full sitemap URL!');
                       }}
                       className="text-blue-600 hover:underline font-bold"
@@ -1295,7 +1295,7 @@ const AdminPanel: React.FC = () => {
                     <ExternalLink className="w-3.5 h-3.5" />
                   </a>
                   <a
-                    href="https://search.google.com/test/rich-results?url=https%3A%2F%2Fmyhomehaven.co.ke"
+                    href="https://search.google.com/test/rich-results?url=https%3A%2F%2Fwww.myhomehaven.co.ke"
                     target="_blank"
                     rel="noreferrer"
                     className="py-3 px-4 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 transition-all"

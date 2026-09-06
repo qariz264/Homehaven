@@ -241,13 +241,13 @@ const Footer: React.FC = () => {
                   </a>
 
                   {/* Social Feed */}
-                  <a href="https://instagram.com/alpha_tech_ke" target="_blank" rel="noreferrer" className="flex items-center gap-4 group p-2 rounded-2xl hover:bg-white/5 transition-colors">
+                  <a href="https://www.instagram.com/myhomehaven.ke/" target="_blank" rel="noreferrer" className="flex items-center gap-4 group p-2 rounded-2xl hover:bg-white/5 transition-colors">
                     <div className="w-10 h-10 rounded-xl bg-pink-600/10 flex items-center justify-center text-pink-500 group-hover:bg-pink-600 group-hover:text-white transition-all shrink-0">
                       <Instagram className="w-4 h-4" />
                     </div>
                     <div className="flex flex-col">
-                      <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest leading-none mb-1">Social Feed</span>
-                      <span className="text-white font-bold leading-none text-sm group-hover:text-pink-400 transition-colors">@alpha_tech_ke</span>
+                      <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest leading-none mb-1">Instagram</span>
+                      <span className="text-white font-bold leading-none text-sm group-hover:text-pink-400 transition-colors">@myhomehaven.ke</span>
                     </div>
                   </a>
                 </div>

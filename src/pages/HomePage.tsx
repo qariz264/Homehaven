@@ -82,29 +82,32 @@ const HomePage: React.FC = () => {
       ? `Browse verified rental properties in ${selectedCounty} County, Kenya. Direct landlord contacts, transparent monthly rent, and real-time vacant unit counters.`
       : 'A premium real estate marketplace connecting landlords and tenants with real M-Pesa payment-activated listings across Nairobi, Mombasa, Kisumu, and all 47 counties in Kenya.',
     keywords: 'HomeHaven, HomeHaven Kenya, houses for rent Kenya, Nairobi apartments, real estate Kenya, bedsitters Nairobi, Kilimani rentals, Westlands apartments, rent houses Mombasa, verified landlord listings, Kenyan real estate, Roysambu bedsitters, Juja rentals, Kiambu houses',
-    canonicalUrl: selectedCounty ? `https://myhomehaven.co.ke/?county=${encodeURIComponent(selectedCounty)}` : 'https://myhomehaven.co.ke/',
+    canonicalUrl: selectedCounty ? `https://www.myhomehaven.co.ke/?county=${encodeURIComponent(selectedCounty)}` : 'https://www.myhomehaven.co.ke/',
     schema: {
       '@context': 'https://schema.org',
       '@graph': [
         {
           '@type': 'WebSite',
-          '@id': 'https://myhomehaven.co.ke/#website',
+          '@id': 'https://www.myhomehaven.co.ke/#website',
           'name': 'HomeHaven',
           'alternateName': ['Home Haven', 'HomeHaven Kenya', 'Home Haven Kenya', 'HomeHaven Real Estate'],
-          'url': 'https://myhomehaven.co.ke',
+          'url': 'https://www.myhomehaven.co.ke',
           'potentialAction': {
             '@type': 'SearchAction',
-            'target': 'https://myhomehaven.co.ke/?search={search_term_string}',
+            'target': 'https://www.myhomehaven.co.ke/?search={search_term_string}',
             'query-input': 'required name=search_term_string'
           },
           'inLanguage': 'en-KE'
         },
         {
           '@type': 'RealEstateAgent',
-          '@id': 'https://myhomehaven.co.ke/#organization',
+          '@id': 'https://www.myhomehaven.co.ke/#organization',
           'name': 'HomeHaven Kenya',
           'alternateName': ['HomeHaven', 'Home Haven Kenya'],
-          'url': 'https://myhomehaven.co.ke',
+          'url': 'https://www.myhomehaven.co.ke',
+          'sameAs': [
+            'https://www.instagram.com/myhomehaven.ke/'
+          ],
           'description': "Kenya's premier verified real estate portal for rental houses and apartments.",
           'address': {
             '@type': 'PostalAddress',

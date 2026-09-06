@@ -37,7 +37,7 @@ const AuthPage: React.FC = () => {
         : 'Landlord Registration | Publish Verified Houses in Kenya',
     description: 'Sign in to the HomeHaven Landlord Hub to manage your rental property portfolio, track M-Pesa verified listings, and monitor tenant inquiries.',
     robots: 'noindex, follow',
-    canonicalUrl: 'https://myhomehaven.co.ke/auth'
+    canonicalUrl: 'https://www.myhomehaven.co.ke/auth'
   });
 
   // Form states
