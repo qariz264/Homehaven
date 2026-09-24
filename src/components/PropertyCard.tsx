@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { MapPin, ArrowRight, Star, ShieldCheck, Home, Phone, Mail } from 'lucide-react';
 import { motion } from 'motion/react';
+import { optimizeImageUrl } from '../lib/imageOptimization';
 
 interface Listing {
   id: string;
@@ -36,9 +37,10 @@ const PropertyCard: React.FC<{ listing: Listing }> = ({ listing }) => {
       <Link to={`/listing/${listing.id}`} className="flex flex-col h-full">
         <div className="relative aspect-[16/10] overflow-hidden">
           <img 
-            src={listing.images?.[0] || 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=800&q=80'} 
+            src={optimizeImageUrl(listing.images?.[0] || 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6', { width: 800, quality: 80, format: 'webp' })} 
             alt={`${listing.title} - Rental House in ${locationText}, Kenya`}
             loading="lazy"
+            decoding="async"
             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000 ease-out"
           />
           {/* Top Overlays */}

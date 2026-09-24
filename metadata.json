@@ -1,6 +1,6 @@
 {
   "name": "HomeHaven",
-  "description": "A premium real estate marketplace connecting landlords and tenants with real M-Pesa payment-activated listings across Nairobi, Mombasa, Kisumu, and all 47 counties in Kenya.",
+  "description": "Kenya's premier verified house platform connecting landlords and tenants with real M-Pesa payment-activated listings across Nairobi, Mombasa, Kisumu, and all 47 counties.",
   "requestFramePermissions": ["geolocation"],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

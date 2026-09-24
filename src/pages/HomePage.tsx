@@ -6,14 +6,19 @@ import ReportFraudModal from '../components/ReportFraudModal';
 import LocationPermissionCard from '../components/LocationPermissionCard';
 import { KENYA_COUNTIES } from '../lib/counties';
 import { useSEO } from '../hooks/useSEO';
+import { optimizeImageUrl } from '../lib/imageOptimization';
 import { Search, MapPin, SlidersHorizontal, ArrowRight, Building2, Users2, ShieldCheck, Zap, X, RotateCcw, DollarSign, Home as HomeIcon, Filter, Navigation, ShieldAlert, Crosshair, HelpCircle, ChevronDown, ChevronUp, Sparkles, CheckCircle2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Link, useLocation } from 'react-router-dom';
 
 const KENYA_RENTAL_FAQS = [
   {
-    q: "How do I find verified houses and apartments for rent on HomeHaven?",
-    a: "Browse verified rental listings across all 47 counties in Kenya including Nairobi, Mombasa, Kiambu, and Nakuru. Filter by price, vacant units, or specific estates (such as Kilimani, Westlands, Roysambu, or Juja). You can review real photos, amenities, and contact verified landlords directly via WhatsApp or direct phone call."
+    q: "What is the best house platform in Kenya for finding rental houses and apartments?",
+    a: "HomeHaven (myhomehaven.co.ke) is Kenya's verified online house platform. It allows tenants to explore verified houses, apartments, and bedsitters directly from property owners and landlords across all 47 counties including Nairobi, Kiambu, Mombasa, and Nakuru—with zero viewing broker fees."
+  },
+  {
+    q: "How do I find verified houses and apartments for rent on the HomeHaven platform?",
+    a: "Browse verified rental listings across all 47 counties in Kenya including Nairobi, Mombasa, Kiambu, and Nakuru. Filter by county, price, vacant units, or specific estates (such as Kilimani, Westlands, Roysambu, or Juja). You can review real photos, amenities, and contact verified landlords directly via WhatsApp or direct phone call."
   },
   {
     q: "How does HomeHaven verify landlords and prevent rental scams?",
@@ -76,12 +81,12 @@ const HomePage: React.FC = () => {
   // Dynamic SEO configuration for Home and County Searches with Google Schema & FAQPage
   useSEO({
     title: selectedCounty 
-      ? `Verified Houses & Apartments for Rent in ${selectedCounty} County | HomeHaven Kenya`
-      : 'HomeHaven | Verified Real Estate & House Listings in Kenya',
+      ? `Verified Houses & Apartments for Rent in ${selectedCounty} County | HomeHaven House Platform`
+      : "HomeHaven | Kenya's Verified House Platform & Rental Properties",
     description: selectedCounty
-      ? `Browse verified rental properties in ${selectedCounty} County, Kenya. Direct landlord contacts, transparent monthly rent, and real-time vacant unit counters.`
-      : 'A premium real estate marketplace connecting landlords and tenants with real M-Pesa payment-activated listings across Nairobi, Mombasa, Kisumu, and all 47 counties in Kenya.',
-    keywords: 'HomeHaven, HomeHaven Kenya, houses for rent Kenya, Nairobi apartments, real estate Kenya, bedsitters Nairobi, Kilimani rentals, Westlands apartments, rent houses Mombasa, verified landlord listings, Kenyan real estate, Roysambu bedsitters, Juja rentals, Kiambu houses',
+      ? `Browse verified rental houses and properties in ${selectedCounty} County on Kenya's premier house platform. Direct landlord contacts, transparent monthly rent, and real-time vacant unit counters.`
+      : "Kenya's premier verified house platform. Discover rental houses, modern apartments, and bedsitters across Nairobi, Mombasa, Kisumu, and all 47 counties with zero middleman fees and direct landlord contact.",
+    keywords: 'house platform, house platform kenya, kenya house platform, housing platform kenya, rental platform kenya, house finding platform, house rental platform, HomeHaven, HomeHaven Kenya, houses for rent Kenya, Nairobi apartments, real estate Kenya, bedsitters Nairobi, Kilimani rentals, Westlands apartments, rent houses Mombasa, verified landlord listings, Kenyan real estate, Roysambu bedsitters, Juja rentals, Kiambu houses',
     canonicalUrl: selectedCounty ? `https://www.myhomehaven.co.ke/?county=${encodeURIComponent(selectedCounty)}` : 'https://www.myhomehaven.co.ke/',
     schema: {
       '@context': 'https://schema.org',
@@ -90,7 +95,7 @@ const HomePage: React.FC = () => {
           '@type': 'WebSite',
           '@id': 'https://www.myhomehaven.co.ke/#website',
           'name': 'HomeHaven',
-          'alternateName': ['Home Haven', 'HomeHaven Kenya', 'Home Haven Kenya', 'HomeHaven Real Estate'],
+          'alternateName': ['Home Haven', 'HomeHaven Kenya', 'Home Haven Kenya', 'HomeHaven House Platform', 'Kenya House Platform', 'HomeHaven Real Estate Platform'],
           'url': 'https://www.myhomehaven.co.ke',
           'potentialAction': {
             '@type': 'SearchAction',
@@ -100,15 +105,30 @@ const HomePage: React.FC = () => {
           'inLanguage': 'en-KE'
         },
         {
+          '@type': 'WebApplication',
+          '@id': 'https://www.myhomehaven.co.ke/#app',
+          'name': 'HomeHaven House Platform',
+          'url': 'https://www.myhomehaven.co.ke',
+          'applicationCategory': 'RealEstateApplication',
+          'operatingSystem': 'All',
+          'description': "Kenya's premier verified online house platform for discovering rental houses, apartments, and bedsitters with direct landlord contacts.",
+          'offers': {
+            '@type': 'Offer',
+            'price': '0',
+            'priceCurrency': 'KES'
+          }
+        },
+        {
           '@type': 'RealEstateAgent',
           '@id': 'https://www.myhomehaven.co.ke/#organization',
           'name': 'HomeHaven Kenya',
-          'alternateName': ['HomeHaven', 'Home Haven Kenya'],
+          'alternateName': ['HomeHaven', 'Home Haven Kenya', 'HomeHaven House Platform'],
           'url': 'https://www.myhomehaven.co.ke',
+          'slogan': "Kenya's Verified House Platform – Zero Viewing Fees",
           'sameAs': [
             'https://www.instagram.com/myhomehaven.ke/'
           ],
-          'description': "Kenya's premier verified real estate portal for rental houses and apartments.",
+          'description': "Kenya's premier verified house platform and real estate marketplace operating across all 47 counties in Kenya.",
           'address': {
             '@type': 'PostalAddress',
             'addressLocality': 'Nairobi',
@@ -120,6 +140,9 @@ const HomePage: React.FC = () => {
             'name': 'Kenya'
           },
           'knowsAbout': [
+            'House platform Kenya',
+            'Housing platform Kenya',
+            'House rental platform',
             'Houses for rent in Kenya',
             'Apartments for rent in Nairobi',
             'Bedsitters in Nairobi',
@@ -228,11 +251,20 @@ const HomePage: React.FC = () => {
       {/* Immersive Hero Section */}
       <section id="hero" className="relative h-[80vh] flex items-center justify-center overflow-hidden">
         <div className="absolute inset-0">
-          <img 
-            src="https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1920&q=80" 
-            className="w-full h-full object-cover"
-            alt="Hero"
-          />
+          <picture>
+            <source 
+              type="image/webp"
+              srcSet={`${optimizeImageUrl('https://images.unsplash.com/photo-1512917774080-9991f1c4c750', { width: 640, format: 'webp' })} 640w, ${optimizeImageUrl('https://images.unsplash.com/photo-1512917774080-9991f1c4c750', { width: 1280, format: 'webp' })} 1280w, ${optimizeImageUrl('https://images.unsplash.com/photo-1512917774080-9991f1c4c750', { width: 1920, format: 'webp' })} 1920w`}
+              sizes="100vw"
+            />
+            <img 
+              src={optimizeImageUrl('https://images.unsplash.com/photo-1512917774080-9991f1c4c750', { width: 1920, format: 'webp' })} 
+              className="w-full h-full object-cover"
+              alt="HomeHaven verified modern real estate and rental homes in Kenya"
+              loading="lazy"
+              decoding="async"
+            />
+          </picture>
           <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-[2px]" />
         </div>
         
@@ -243,11 +275,14 @@ const HomePage: React.FC = () => {
             transition={{ duration: 0.8 }}
           >
             <span className="inline-block px-4 py-1.5 rounded-full bg-blue-600/20 backdrop-blur-md border border-blue-400/30 text-blue-100 text-xs font-bold uppercase tracking-widest mb-6">
-              Welcome to the Hub
+              Kenya's Verified House Platform
             </span>
-            <h1 className="text-5xl md:text-7xl font-black text-white tracking-tight mb-8 drop-shadow-2xl">
-              HomeHaven <br /> Real Estate <span className="text-blue-400">Hub</span>
+            <h1 className="text-5xl md:text-7xl font-black text-white tracking-tight mb-4 drop-shadow-2xl">
+              Kenya's Premier <br /> House &amp; Rental <span className="text-blue-400">Platform</span>
             </h1>
+            <p className="text-blue-100 text-sm md:text-base font-medium max-w-2xl mx-auto mb-8 drop-shadow">
+              Connecting tenants with verified landlords across all 47 counties with zero viewing fees.
+            </p>
             
             {/* Hero Filter Card with Black Text */}
             <div className="max-w-4xl mx-auto bg-white/95 backdrop-blur-md p-5 rounded-3xl shadow-2xl space-y-3 border border-white/40">
@@ -362,8 +397,8 @@ const HomePage: React.FC = () => {
 
       <section id="features" className="py-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-16 text-center md:text-left">
-          <h2 className="text-3xl font-black text-slate-900 mb-2">Our Key Features</h2>
-          <p className="text-slate-500 font-medium">Why landlords and tenants choose HomeHaven</p>
+          <h2 className="text-3xl font-black text-slate-900 mb-2">Kenya's Smart House Platform Features</h2>
+          <p className="text-slate-500 font-medium">Why landlords and tenants across 47 counties choose the HomeHaven house platform</p>
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

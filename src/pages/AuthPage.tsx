@@ -309,7 +309,13 @@ const AuthPage: React.FC = () => {
         {/* Visual Side */}
         <div className="hidden md:flex flex-col justify-between bg-slate-900 p-12 text-white relative overflow-hidden">
           <div className="absolute inset-0 opacity-20">
-             <img src="https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=800&q=80" className="w-full h-full object-cover" alt="" />
+             <img 
+               src="https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=800&q=80&fm=webp" 
+               className="w-full h-full object-cover" 
+               alt="HomeHaven modern real estate architecture" 
+               loading="lazy"
+               decoding="async"
+             />
              <div className="absolute inset-0 bg-gradient-to-t from-slate-900 to-transparent" />
           </div>
           

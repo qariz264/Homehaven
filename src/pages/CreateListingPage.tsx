@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useSEO } from '../hooks/useSEO';
+import { convertFileToWebP, optimizeImageUrl } from '../lib/imageOptimization';
 import axios from 'axios';
 import { 
   launchPaystackCheckout, 
@@ -50,43 +51,7 @@ const PROPERTY_TYPES = [
 ];
 
 const compressAndConvertToBase64 = (file: File): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        let width = img.width;
-        let height = img.height;
-        const maxDimension = 1200;
-
-        if (width > maxDimension || height > maxDimension) {
-          if (width > height) {
-            height = Math.round((height * maxDimension) / width);
-            width = maxDimension;
-          } else {
-            width = Math.round((width * maxDimension) / height);
-            height = maxDimension;
-          }
-        }
-
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        if (ctx) {
-          ctx.drawImage(img, 0, 0, width, height);
-          const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
-          resolve(dataUrl);
-        } else {
-          resolve(e.target?.result as string);
-        }
-      };
-      img.onerror = () => reject(new Error("Failed to load image file"));
-      img.src = e.target?.result as string;
-    };
-    reader.onerror = (err) => reject(err);
-    reader.readAsDataURL(file);
-  });
+  return convertFileToWebP(file, 1200, 0.82);
 };
 
 const CreateListingPage: React.FC = () => {
@@ -871,6 +836,8 @@ const CreateListingPage: React.FC = () => {
                                 <img 
                                   src={img} 
                                   alt={`Property upload ${idx + 1}`} 
+                                  loading="lazy"
+                                  decoding="async"
                                   className="w-full h-full object-cover"
                                 />
                                 <button
@@ -927,8 +894,10 @@ const CreateListingPage: React.FC = () => {
                     <div className="p-5 bg-slate-50 rounded-2xl border border-slate-200 flex flex-col sm:flex-row items-start sm:items-center gap-5">
                       <div className="w-24 h-24 rounded-xl overflow-hidden bg-slate-200 shrink-0 border border-slate-300">
                         <img 
-                          src={images[0] || 'https://images.unsplash.com/photo-1570129477492-45c003edd2be?auto=format&fit=crop&w=800&q=80'} 
+                          src={optimizeImageUrl(images[0] || 'https://images.unsplash.com/photo-1570129477492-45c003edd2be', { width: 300, format: 'webp' })} 
                           alt="Listing Preview" 
+                          loading="lazy"
+                          decoding="async"
                           className="w-full h-full object-cover"
                         />
                       </div>

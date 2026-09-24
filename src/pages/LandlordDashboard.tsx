@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { collection, query, where, getDocs, orderBy, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../App';
+import { optimizeImageUrl } from '../lib/imageOptimization';
 import { 
   Plus, 
   Clock, 
@@ -613,9 +614,11 @@ const LandlordDashboard: React.FC = () => {
                                   <div className="flex items-center gap-5">
                                     <div className="w-16 h-16 rounded-2xl overflow-hidden shadow-sm border border-slate-100 group-hover:scale-105 transition-transform">
                                        <img 
-                                        src={listing.images[0]} 
+                                        src={optimizeImageUrl(listing.images[0], { width: 200, format: 'webp' })} 
                                         className="w-full h-full object-cover" 
-                                        alt=""
+                                        alt={listing.title}
+                                        loading="lazy"
+                                        decoding="async"
                                       />
                                     </div>
                                     <div>

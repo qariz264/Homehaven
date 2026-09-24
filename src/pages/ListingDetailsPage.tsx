@@ -4,6 +4,7 @@ import { doc, getDoc, collection, addDoc, deleteDoc, serverTimestamp } from 'fir
 import { db } from '../lib/firebase';
 import { useAuth } from '../App';
 import { useSEO } from '../hooks/useSEO';
+import { optimizeImageUrl } from '../lib/imageOptimization';
 import { 
   MapPin, 
   Phone, 
@@ -296,12 +297,20 @@ const ListingDetailsPage: React.FC = () => {
 
             <div className="space-y-4 sm:space-y-6">
               <div className="relative rounded-2xl sm:rounded-[2.5rem] overflow-hidden shadow-2xl bg-slate-100 aspect-[16/10] sm:aspect-[16/9]">
-                <img 
-                  src={listing.images?.[0] || 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=1200&h=630&q=80'} 
-                  className="w-full h-full object-cover" 
-                  alt={`${listing.title} - Main View in ${listing.location}, Kenya`}
-                  fetchPriority="high"
-                />
+                <picture>
+                  <source 
+                    type="image/webp" 
+                    srcSet={`${optimizeImageUrl(listing.images?.[0] || 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00', { width: 800, format: 'webp' })} 800w, ${optimizeImageUrl(listing.images?.[0] || 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00', { width: 1400, format: 'webp' })} 1400w`}
+                    sizes="(max-width: 768px) 100vw, 1200px"
+                  />
+                  <img 
+                    src={optimizeImageUrl(listing.images?.[0] || 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00', { width: 1200, format: 'webp' })} 
+                    className="w-full h-full object-cover" 
+                    alt={`${listing.title} - Main View in ${listing.location}, Kenya`}
+                    loading="lazy"
+                    decoding="async"
+                  />
+                </picture>
                 <div className="absolute top-4 left-4 flex flex-wrap gap-2">
                    <div className="px-3 py-1.5 rounded-full bg-slate-900/80 backdrop-blur-md text-white text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 shadow-lg">
                       <ShieldCheck className="w-3.5 h-3.5 text-blue-400" /> Verified Property
@@ -318,9 +327,10 @@ const ListingDetailsPage: React.FC = () => {
                   {listing.images.map((img: string, idx: number) => (
                     <div key={idx} className="aspect-[4/3] rounded-xl sm:rounded-2xl overflow-hidden border border-slate-200 shadow-sm bg-slate-100">
                       <img 
-                        src={img} 
+                        src={optimizeImageUrl(img, { width: 400, quality: 80, format: 'webp' })} 
                         alt={`${listing.title} - Photo ${idx + 1} in ${listing.location}`} 
                         loading="lazy"
+                        decoding="async"
                         className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" 
                       />
                     </div>
